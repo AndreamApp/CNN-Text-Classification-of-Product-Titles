@@ -165,7 +165,8 @@ def get_max_text_length(fname):
 
     return max_len
 
-
+# 以下代码参考自 https://github.com/gaussic/text-classification-cnn-rnn
+# ====================================================================
 def build_vocab(train_path, vocab_path, vocab_size=4000):
     """
     根据训练集构建词汇表，保存为文件（1.字符级词汇表 2.词级词汇表），并分配id
@@ -246,7 +247,7 @@ def to_id(content, vocab):
         title_id.extend(padding)
 
     return title_id
-
+# ===========================================================================
 
 
 if __name__ == '__main__':
