@@ -6,7 +6,7 @@ import re
 
 def cut_and_filter(string):
     """
-    给句子分词，并只保留汉字、英文、数字，返回定长的词的列表
+    给句子分词，并只保留汉字，返回定长的词的列表
     """
     # 全模式，试图最精确地分词，成词后还将细分
     #wordgen = jieba.cut(str, cut_all=True)
@@ -16,7 +16,8 @@ def cut_and_filter(string):
 
     words = []
     for word in wordgen:
-        if (re.match(r'^[\u4e00-\u9fa5a-zA-Z0-9]+$', word) is not None):
+        # 若词只包含中文
+        if re.match(r'^[\u4e00-\u9fa5]+$', word) is not None:
             words.append(word)
 
     return words

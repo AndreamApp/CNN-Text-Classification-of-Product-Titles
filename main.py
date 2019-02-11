@@ -218,7 +218,7 @@ def train():
         text_length = preprocess.MAX_TEXT_LENGTH
         cnn = TextCNN(
             class_num=1258,
-            filter_sizes=[4, 5, 6],
+            filter_sizes=[2, 3, 4],
             filter_num=300,
             text_length=text_length,
         )
