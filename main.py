@@ -33,20 +33,20 @@ class CNNConfig(object):
 class TextCNN(object):
     def __init__(self, class_num, filter_sizes, filter_num,
                  vocab_size = 4000,
-                 text_length=preprocess.MAX_TEXT_LENGTH, embedding_size=128):
+                 text_length=preprocess.MAX_TEXT_LENGTH, embedding_dim=128):
         """
         :param class_num: Number of classes in the output layer.
         :param filter_sizes: A list, specifying each filter size we want.
         :param filter_num: The number of filter of each filter size.
         :param text_length: The length of each text, padding if needed.
-        :param embedding_size: The dimension of our embedding. If pre-trained word2vec is used, 300.
+        :param embedding_dim: The dimension of our embedding. If pre-trained word2vec is used, 300.
         """
         self.class_num = class_num
         self.filter_sizes = filter_sizes
         self.filter_num = filter_num
         self.vocab_size = vocab_size
         self.text_length = text_length
-        self.embedding_size = embedding_size
+        self.embedding_size = embedding_dim
         self.input_x = ''
         self.input_y = ''
         self.dropout_keep_prob = ''
@@ -54,6 +54,7 @@ class TextCNN(object):
         self.embedding_inputs_expanded = ''
         self.loss = ''
         self.accuracy = ''
+        self.prediction = ''
 
     def convert_input(self, titles, labels):
         """
@@ -90,30 +91,49 @@ class TextCNN(object):
         pool_outputs = []
         # Iterate to create convolution layer for each filter
         for filter_size in self.filter_sizes:
-            # Convolution layer
-            # To perform conv2d, filter param should be [height, width, in_channel, out_channel]
-            filter_shape = [filter_size, self.embedding_size, 1, self.filter_num]
-            W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1))
-            b = tf.Variable(tf.constant(0.1, shape=[self.filter_num]))
 
-            conv = tf.nn.conv2d(
-                self.embedding_inputs_expanded,
-                filter=W,
-                strides=[1, 1, 1, 1],
+            # Convolution layer 1
+            # ==================================================================
+            # To perform conv2d, filter param should be [height, width, in_channel, out_channel]
+            filter_shape = [filter_size, self.embedding_size]
+            conv_1 = tf.layers.conv2d(
+                inputs=self.embedding_inputs_expanded,
+                filters=self.filter_num,
+                kernel_size=filter_shape,
+                strides=[1, 1],
+                padding='VALID',
+                use_bias=True,
+                kernel_initializer=tf.initializers.truncated_normal(stddev=0.1),
+                bias_initializer=tf.initializers.constant(0.1)
+            )
+            # ===================================================================
+            # Do batch normalization
+            # =================================================================
+            # For image, do norm on dimension[0, 1, 2] for [batch, height, width]
+            conv_1_shape = conv_1.shape.as_list()
+            axes = list(range(len(conv_1_shape)-1))
+            mean, varience = tf.nn.moments(conv_1, axes)
+
+            dim = conv_1_shape[3]
+            scale = tf.Variable(tf.ones([dim]))
+            offset = tf.Variable(tf.zeros([dim]))
+            epsilon = 0.001
+            conv_1_output = tf.nn.batch_normalization(conv_1, mean, varience,
+                                                      offset, scale, epsilon)
+            conv_1_output = tf.nn.relu(conv_1_output)
+            # ======================================================================
+            # Pooling layer 1
+            # ====================================================================
+            conv_1_output_shape = conv_1_output.shape.as_list()
+            pool_1 = tf.layers.max_pooling2d(
+                inputs=conv_1_output,
+                pool_size=[conv_1_output_shape[1] - 1 + 1, 1],
+                strides=[1, 1],
                 padding='VALID'
             )
-            # Output shape[batch, text_length-filter_size+1, 1, 1]
-            # Activation function
-            conv_output = tf.nn.relu(tf.nn.bias_add(conv, b))
-            # Pooling layer
-            pool = tf.nn.max_pool(
-                conv_output,
-                ksize=[1, self.text_length - filter_size + 1, 1, 1],
-                strides=[1, 1, 1, 1],
-                padding='VALID'
-            )
-            # Output shape[batch, 1, 1, 1]
-            pool_outputs.append(pool)
+            # =====================================================================
+
+            pool_outputs.append(pool_1)
 
         # Combine all the pooling output
         # The total number of filters.
@@ -122,18 +142,32 @@ class TextCNN(object):
         h_pool_flat = tf.reshape(h_pool, [-1, total_filter_num])
         # Output shape[batch, total_filter_num]
 
+
+        # Full-connected layer
+        # ========================================================================
+        # TODO:
+        h_full = tf.layers.dense(
+            h_pool_flat,
+            units=1024,
+            activation=tf.nn.relu,
+            use_bias=True,
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
+            bias_initializer=tf.constant_initializer(0.1)
+        )
         # Add dropout
-        h_drop = tf.nn.dropout(h_pool_flat, self.dropout_keep_prob)
+        h_drop = tf.nn.dropout(h_full, self.dropout_keep_prob)
+        # =========================================================================
 
         # Output layer
         score = tf.layers.dense(
-            h_drop,
+            h_full,
             units=self.class_num,
             activation=None,
             use_bias=True,
             kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
             bias_initializer=tf.constant_initializer(0.1)
         )
+
         self.prediction = tf.argmax(score, 1)
 
         # Loss function
@@ -159,7 +193,6 @@ class TextCNN(object):
         train_dataset = dataset.take(preprocess.TRAIN_SIZE).batch(32).repeat()
         valid_dataset = dataset.skip(preprocess.VALID_SIZE).batch(1000).repeat()
 
-
         # Create a reinitializable iterator
         train_iterator = train_dataset.make_initializable_iterator()
         valid_iterator= valid_dataset.make_initializable_iterator()
@@ -183,15 +216,15 @@ def train():
         text_length = preprocess.MAX_TEXT_LENGTH
         cnn = TextCNN(
             class_num=1258,
-            filter_sizes=[3, 4, 5],
-            filter_num=3,
-            text_length=text_length
+            filter_sizes=[4, 5, 6],
+            filter_num=300,
+            text_length=text_length,
         )
         train_dataset, valid_dataset, train_init_op, valid_init_op, next_train_element, next_valid_element = cnn.prepare_data()
         cnn.setCNN()
 
         global_step = tf.Variable(0, trainable=False)
-        train_op = tf.train.AdamOptimizer(3e-4).minimize(cnn.loss, global_step)
+        train_op = tf.train.AdamOptimizer(1e-4).minimize(cnn.loss, global_step)
 
         def train_step(batch_x, batch_y, keep_prob=0.5):
             feed_dict = {
@@ -230,7 +263,7 @@ def train():
         sess.run(valid_init_op)
 
         # Training loop
-        for epoch in range(30000):
+        for epoch in range(30001):
             titles, labels = sess.run(next_train_element)
             batch_x, batch_y = cnn.convert_input(titles, labels)
             train_step(batch_x, batch_y, 0.5)
