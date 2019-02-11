@@ -110,16 +110,18 @@ class TextCNN(object):
             # Do batch normalization
             # =================================================================
             # For image, do norm on dimension[0, 1, 2] for [batch, height, width]
-            conv_1_shape = conv_1.shape.as_list()
-            axes = list(range(len(conv_1_shape)-1))
-            mean, varience = tf.nn.moments(conv_1, axes)
+            # conv_1_shape = conv_1.shape.as_list()
+            # axes = list(range(len(conv_1_shape)-1))
+            # mean, varience = tf.nn.moments(conv_1, axes)
 
-            dim = conv_1_shape[3]
-            scale = tf.Variable(tf.ones([dim]))
-            offset = tf.Variable(tf.zeros([dim]))
-            epsilon = 0.001
-            conv_1_output = tf.nn.batch_normalization(conv_1, mean, varience,
-                                                      offset, scale, epsilon)
+            # dim = conv_1_shape[3]
+            # scale = tf.Variable(tf.ones([dim]))
+            # offset = tf.Variable(tf.zeros([dim]))
+            # epsilon = 0.001
+            # conv_1_output = tf.nn.batch_normalization(conv_1, mean, varience,
+            #                                           offset, scale, epsilon)
+            # Use more convenient tf.layers.batch_normalization
+            conv_1_output = tf.layers.batch_normalization(conv_1, training=True)
             conv_1_output = tf.nn.relu(conv_1_output)
             # ======================================================================
             # Pooling layer 1
@@ -224,7 +226,11 @@ def train():
         cnn.setCNN()
 
         global_step = tf.Variable(0, trainable=False)
-        train_op = tf.train.AdamOptimizer(1e-4).minimize(cnn.loss, global_step)
+
+        # 保证Batch normalization的执行
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):  # 保证train_op在update_ops执行之后再执行。
+            train_op = tf.train.AdamOptimizer(1e-4).minimize(cnn.loss, global_step)
 
         def train_step(batch_x, batch_y, keep_prob=0.5):
             feed_dict = {
