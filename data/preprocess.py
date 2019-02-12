@@ -1,26 +1,28 @@
 import csv
-import cut
+from data import cut
 import numpy as np
 import tensorflow as tf
-from tensorflow.data.experimental import CsvDataset
 import datetime
 import collections
 import re
 
 SGNS_WORD_NGRAM_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 SGNS_WORD_PATH = ''
-LABEL_ID_PATH = './data/level3_id.txt'
-TRAIN_PATH = './data/train.csv'
-TRAIN_WITH_ID_PATH = './data/train_with_id.csv'
-CHAR_VOCAB_PATH = './data/char_vocab.txt'
-WORD_VOCAB_PATH = './data/word_vocab.txt'
-TEMP_PATH = './data/temp.csv'
+LABEL_ID_PATH = 'level3_id.txt'
+TRAIN_PATH = 'train.csv'
+TRAIN_WITH_ID_PATH = 'train_with_id.csv'
+CHAR_VOCAB_PATH = 'char_vocab.txt'
+WORD_VOCAB_PATH = 'word_vocab.txt'
+TEMP_PATH = 'temp.csv'
 
 TOTAL_SIZE = 500000
 TRAIN_SIZE = int(TOTAL_SIZE * 0.7)
 VALID_SIZE = int(TOTAL_SIZE * 0.3)
 
-MAX_TEXT_LENGTH = 86
+# 字符级的文本最长长度
+#MAX_TEXT_LENGTH = 86
+# 词级的文本最长长度
+MAX_TEXT_LENGTH = 44
 
 word_vecs = {}
 
@@ -124,7 +126,7 @@ def add_word(word):
     # If a word isn't in the vocabulary, assign a random vector to it.
     # Referring to https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
     # TODO: Uncertain method to generate random vector
-    vec =  np.random.uniform(-0.25, 0.25, [300])
+    vec = np.random.uniform(-0.25, 0.25, [300])
     word_vecs[word] = vec
     return vec
 
@@ -134,7 +136,7 @@ def get_word_vecs(string):
     # Note: The string read from this .csv file must be decoded with 'gbk' first
     words = cut.cut_and_filter(string)
 
-    # TODO: Pad the string with spaces to fix text_length
+    # Pad the string with spaces to fix text_length
     if len(words) < MAX_TEXT_LENGTH:
         for _ in range(MAX_TEXT_LENGTH - len(words)):
             words.append('<PAD>')
@@ -158,12 +160,15 @@ def get_max_text_length(fname):
 
     max_len = 0
     for row in reader:
-        # 只保留中文
-        title = re.sub(r'[^\u4e00-\u9fa5]', '', row[0]).strip()
+        # 1.字符长度
+        # title = re.sub(r'[^\u4e00-\u9fa5]', '', row[0]).strip()
+        # 2.词长度
+        title = cut.cut_and_filter(row[0].strip())
         if len(title) > max_len:
             max_len = len(title)
 
     return max_len
+
 
 # 以下代码参考自 https://github.com/gaussic/text-classification-cnn-rnn
 # ====================================================================
@@ -180,11 +185,13 @@ def build_vocab(train_path, vocab_path, vocab_size=4000):
     reader = csv.reader(rf)
     wf = open(vocab_path, 'w', encoding='utf-8')
 
-    # 1.字符级词汇表
     all_chars = []
     for row in reader:
+        # 1.字符级词汇表
         # 只保留中文
-        title = re.sub(r'[^\u4e00-\u9fa5]', '', row[0]).strip()
+        # title = re.sub(r'[^\u4e00-\u9fa5]', '', row[0]).strip()
+        # 2.词级词汇表
+        title = cut.cut_and_filter(row[0].strip())
         # 将字符存入列表
         chars = list(title)
         all_chars.extend(chars)
@@ -271,7 +278,7 @@ if __name__ == '__main__':
     #    print(batch_x.shape)
     #    print(labels.eval())
 
-    #build_vocab(TRAIN_WITH_ID_PATH, CHAR_VOCAB_PATH)
-    #vocab = read_vocab(CHAR_VOCAB_PATH)
-    #print(to_id('你好啊', vocab))
-    print(get_max_text_length(TRAIN_WITH_ID_PATH))
+    #build_vocab(TRAIN_WITH_ID_PATH, WORD_VOCAB_PATH)
+    vocab = read_vocab(WORD_VOCAB_PATH)
+    print(to_id(cut.cut_and_filter('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌'), vocab))
+    #print(get_max_text_length(TRAIN_WITH_ID_PATH))

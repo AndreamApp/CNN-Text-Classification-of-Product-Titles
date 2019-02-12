@@ -5,6 +5,7 @@ from data import preprocess
 import os
 import datetime
 import time
+from data import cut
 
 
 class CNNConfig(object):
@@ -61,10 +62,17 @@ class TextCNN(object):
         将数据集转换为id表示
         """
         batch_x = []
-        vocab = preprocess.read_vocab(preprocess.CHAR_VOCAB_PATH)
+        # 读取词汇表
+        # 1.字符级
+        # vocab = preprocess.read_vocab(os.path.join('./data',preprocess.CHAR_VOCAB_PATH))
+        # for title in titles:
+        #     batch_x.append(preprocess.to_id(title.decode('gbk'), vocab))
+        # 2.词级
+        vocab = preprocess.read_vocab(os.path.join('./data', preprocess.WORD_VOCAB_PATH))
 
         for title in titles:
-            batch_x.append(preprocess.to_id(title.decode('gbk'), vocab))
+            t = cut.cut_and_filter(title.decode('gbk'))
+            batch_x.append(preprocess.to_id(t, vocab))
 
         batch_x = np.stack(batch_x)
         batch_y = labels
@@ -150,7 +158,7 @@ class TextCNN(object):
         # TODO:
         h_full = tf.layers.dense(
             h_pool_flat,
-            units=1024,
+            units=512,
             activation=tf.nn.relu,
             use_bias=True,
             kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
@@ -185,14 +193,14 @@ class TextCNN(object):
         # =======================================================
 
         # Load data
-        dataset = CsvDataset(preprocess.TRAIN_WITH_ID_PATH,
+        dataset = CsvDataset(os.path.join('./data',preprocess.TRAIN_WITH_ID_PATH),
                              [tf.string, tf.int32]).shuffle(500000)
         # Load trained word2vec file
         # productdataset.load_vecs(productdataset.SGNS_WORD_NGRAM_PATH)
 
         # Splite dataset
         # TODO: Should use k-fold cross validation
-        train_dataset = dataset.take(preprocess.TRAIN_SIZE).batch(32).repeat()
+        train_dataset = dataset.take(preprocess.TRAIN_SIZE).batch(128).repeat()
         valid_dataset = dataset.skip(preprocess.VALID_SIZE).batch(1000).repeat()
 
         # Create a reinitializable iterator
