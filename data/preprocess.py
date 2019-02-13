@@ -11,18 +11,23 @@ SGNS_WORD_PATH = ''
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
 TRAIN_WITH_ID_PATH = 'train_with_id.csv'
+TEST_PATH = 'test.csv'
 CHAR_VOCAB_PATH = 'char_vocab.txt'
 WORD_VOCAB_PATH = 'word_vocab.txt'
 TEMP_PATH = 'temp.csv'
 
-TOTAL_SIZE = 500000
-TRAIN_SIZE = int(TOTAL_SIZE * 0.7)
-VALID_SIZE = int(TOTAL_SIZE * 0.3)
+TOTAL_TRAIN_SIZE = 500000
+TRAIN_SIZE = int(TOTAL_TRAIN_SIZE * 0.7)
+VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
+
+TOTAL_TEST_SIZE = 4499967
 
 # 字符级的文本最长长度
-#MAX_TEXT_LENGTH = 86
+MAX_CHAR_TEXT_LENGTH = 86
 # 词级的文本最长长度
-MAX_TEXT_LENGTH = 44
+MAX_WORD_TEXT_LENGTH = 44
+
+VOCAB_SIZE = 4000
 
 word_vecs = {}
 
@@ -54,6 +59,8 @@ def assign_id():
 
     # ----------------------------------------------------------------------
 
+
+def recreate_data_with_id():
     # 重新生成tag为id的训练集
     ids = {}
     label = ''
@@ -137,8 +144,8 @@ def get_word_vecs(string):
     words = cut.cut_and_filter(string)
 
     # Pad the string with spaces to fix text_length
-    if len(words) < MAX_TEXT_LENGTH:
-        for _ in range(MAX_TEXT_LENGTH - len(words)):
+    if len(words) < MAX_CHAR_TEXT_LENGTH:
+        for _ in range(MAX_CHAR_TEXT_LENGTH - len(words)):
             words.append('<PAD>')
 
     vec = []
@@ -172,7 +179,7 @@ def get_max_text_length(fname):
 
 # 以下代码参考自 https://github.com/gaussic/text-classification-cnn-rnn
 # ====================================================================
-def build_vocab(train_path, vocab_path, vocab_size=4000):
+def build_vocab(train_path, vocab_path, vocab_size=VOCAB_SIZE):
     """
     根据训练集构建词汇表，保存为文件（1.字符级词汇表 2.词级词汇表），并分配id
 
@@ -218,6 +225,7 @@ def read_vocab(vocab_path):
     :param vocab_path:
     :return vocab:
     """
+    print('Reading vocabulary from:', vocab_path)
     vocab = {}
     with open(vocab_path, 'r', encoding='utf-8') as f:
         while True:
@@ -231,14 +239,25 @@ def read_vocab(vocab_path):
 
 def read_label(label_ids_path):
     """
-    读取标签文件，转化为{标签: id}表示
+    读取标签文件，转化为列表表示
 
     :param label_ids_path:
-    :return label:
+    :return labels:
     """
+    print('Reading label id from:', label_ids_path)
+    labels = []
+    with open(label_ids_path, 'r', encoding='utf-8') as f:
+        while True:
+            line = f.readline().strip()
+            if line == '':
+                break
+            line = line.split()
+            label = ''.join(line[:-1])
+            labels.append(label)
+    return labels
 
 
-def to_id(content, vocab):
+def to_id(content, vocab, mode='CHAR'):
     """
     将数据集从文字转换为固定长度的id序列表示
     :param content:
@@ -248,9 +267,14 @@ def to_id(content, vocab):
 
     title_id = [vocab[x] for x in content if x in vocab]
 
+    max_length = 0
     # 将文本pad为固定长度
-    if len(title_id) < MAX_TEXT_LENGTH:
-        padding = [0 for _ in range(MAX_TEXT_LENGTH - len(title_id))]
+    if mode == 'CHAR':
+        max_length = MAX_CHAR_TEXT_LENGTH
+    elif mode == 'WORD':
+        max_length = MAX_WORD_TEXT_LENGTH
+    if len(title_id) < max_length:
+        padding = [0 for _ in range(MAX_CHAR_TEXT_LENGTH - len(title_id))]
         title_id.extend(padding)
 
     return title_id
@@ -279,6 +303,6 @@ if __name__ == '__main__':
     #    print(labels.eval())
 
     #build_vocab(TRAIN_WITH_ID_PATH, WORD_VOCAB_PATH)
-    vocab = read_vocab(WORD_VOCAB_PATH)
-    print(to_id(cut.cut_and_filter('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌'), vocab))
+    vocab = read_vocab(CHAR_VOCAB_PATH)
+    print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
     #print(get_max_text_length(TRAIN_WITH_ID_PATH))
