@@ -13,11 +13,11 @@
 提取码：qlxm 
 
 # Project structure 
-`data/`目录下包含了训练集以及字符级、词级词汇表，标签id表
-`data/proprocess.py`包含一系列预处理数据的函数
-`cnn_model.py`包含TextCNN模型的定义以及可调节的参数
-`train.py`包含训练的代码
-`test.py`包含测试的代码
+`data/`目录下包含了训练集以及字符级、词级词汇表，标签id表   
+`data/proprocess.py`包含一系列预处理数据的函数   
+`cnn_model.py`包含TextCNN模型的定义以及可调节的参数   
+`train.py`包含训练的代码   
+`test.py`包含测试的代码   
 
 # Train
     python train.py
