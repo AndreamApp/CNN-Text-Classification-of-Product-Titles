@@ -12,12 +12,15 @@
 下载链接：https://pan.baidu.com/s/1tv3yh6-H2cNTxuicJA5ykA 
 提取码：qlxm 
 
-# Preprocess 
-
-    data/proprocess.py 订单
+# Project structure 
+`data/`目录下包含了训练集以及字符级、词级词汇表，标签id表
+`data/proprocess.py`包含一系列预处理数据的函数
+`cnn_model.py`包含TextCNN模型的定义以及可调节的参数
+`train.py`包含训练的代码
+`test.py`包含测试的代码
 
 # Train
-  
+    python train.py
 
 # Referrence
 CNN-RNN中文文本分类，基于TensorFlow: gaussic/text-classification-cnn-rnn https://github.com/gaussic/text-classification-cnn-rnn
