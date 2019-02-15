@@ -11,7 +11,7 @@ SGNS_WORD_PATH = ''
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
 TRAIN_WITH_ID_PATH = 'train_with_id.csv'
-TEST_PATH = 'test.csv'
+TEST_PATH = 'test.tsv'
 CHAR_VOCAB_PATH = 'char_vocab.txt'
 WORD_VOCAB_PATH = 'word_vocab.txt'
 TEMP_PATH = 'temp.csv'
@@ -20,7 +20,7 @@ TOTAL_TRAIN_SIZE = 500000
 TRAIN_SIZE = int(TOTAL_TRAIN_SIZE * 0.7)
 VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
 
-TOTAL_TEST_SIZE = 4499967
+TOTAL_TEST_SIZE = 4500000
 
 # 字符级的文本最长长度
 MAX_CHAR_TEXT_LENGTH = 86
@@ -274,7 +274,7 @@ def to_id(content, vocab, mode='CHAR'):
     elif mode == 'WORD':
         max_length = MAX_WORD_TEXT_LENGTH
     if len(title_id) < max_length:
-        padding = [0 for _ in range(MAX_CHAR_TEXT_LENGTH - len(title_id))]
+        padding = [vocab['<PAD>'] for _ in range(MAX_CHAR_TEXT_LENGTH - len(title_id))]
         title_id.extend(padding)
 
     return title_id

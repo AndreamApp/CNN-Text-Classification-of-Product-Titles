@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.data.experimental import CsvDataset
+from tensorflow.data import TextLineDataset
 import numpy as np
 from data import preprocess
 from data import cut
@@ -11,9 +12,7 @@ class CNNConfig(object):
     # TODO: 在此修改TextCNN以及训练的参数
     """
     train_mode = 'CHAR'     # 训练模式，'CHAR'为字符级，'WORD'为词级
-                            # 'CHAR'务必使用MAX_CHAR_TEXT_LENGTH的序列长度
-                            # 'WORD'务必使用MAX_WORD_TEXT_LENGTH的序列长度
-    text_length = preprocess.MAX_CHAR_TEXT_LENGTH   # 序列长度
+
     class_num = 1258        # 输出类别的数目
     embedding_dim = 128      # 词向量维度（64）
     filter_num = 300        # 卷积核数目
@@ -44,7 +43,10 @@ class TextCNN(object):
         self.valid_batch_size = config.valid_batch_size
         self.test_batch_size = config.test_batch_size
 
-        self.text_length = config.text_length
+        if config.train_mode == 'CHAR':     # 文本长度
+            self.text_length = preprocess.MAX_CHAR_TEXT_LENGTH
+        elif config.train_mode == 'WORD':
+            self.text_length = preprocess.MAX_WORD_TEXT_LENGTH
         self.embedding_dim = config.embedding_dim
         self.train_mode = config.train_mode
 
@@ -57,6 +59,7 @@ class TextCNN(object):
         self.loss = ''
         self.accuracy = ''
         self.prediction = ''
+        self.vocab = ''
 
     def convert_input(self, titles, labels):
         """
@@ -66,16 +69,14 @@ class TextCNN(object):
         # 读取词汇表
         if self.train_mode == 'CHAR':
             # 1.字符级
-            vocab = preprocess.read_vocab(os.path.join('./data',preprocess.CHAR_VOCAB_PATH))
             for title in titles:
-                batch_x.append(preprocess.to_id(title.decode('gbk'), vocab, self.train_mode))
+                batch_x.append(preprocess.to_id(title.decode('gbk'), self.vocab, self.train_mode))
 
         elif self.train_mode == 'WORD':
             # 2.词级
-            vocab = preprocess.read_vocab(os.path.join('./data', preprocess.WORD_VOCAB_PATH))
             for title in titles:
                 t = cut.cut_and_filter(title.decode('gbk'))
-                batch_x.append(preprocess.to_id(t, vocab, self.train_mode))
+                batch_x.append(preprocess.to_id(t, self.vocab, self.train_mode))
 
         batch_x = np.stack(batch_x)
         batch_y = labels
@@ -192,6 +193,13 @@ class TextCNN(object):
     def prepare_data(self):
         # Data preparation.
         # =======================================================
+        # 读取词汇表
+        if self.train_mode == 'CHAR':
+            # 1.字符级
+            self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
+        elif self.train_mode == 'WORD':
+            # 2.词级
+            self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
 
         # Load data
         dataset = CsvDataset(os.path.join('./data',preprocess.TRAIN_WITH_ID_PATH),
@@ -219,8 +227,8 @@ class TextCNN(object):
         # Date preparation ends.
 
     def prepare_test_data(self):
-        dataset = CsvDataset(os.path.join('./data',preprocess.TEST_PATH),
-                             [tf.string])
+        # 测试集有标题，读取时注意跳过第一行
+        dataset = TextLineDataset(os.path.join('data',preprocess.TEST_PATH))
         dataset = dataset.shuffle(preprocess.TOTAL_TEST_SIZE).batch(self.test_batch_size)
 
         iterator = dataset.make_one_shot_iterator()

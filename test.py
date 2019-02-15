@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.data.experimental import CsvDataset
+from tensorflow.data import TextLineDataset
 from cnn_model import TextCNN
 from cnn_model import CNNConfig
 from data import preprocess
@@ -57,8 +58,8 @@ def predict():
                   '19款保时捷卡宴新macan脚垫18款帕拉梅拉Panamera全包围汽车脚垫 保时捷']
         batch_x = []
         # 读取词汇表和标签id表
-        vocab = preprocess.read_vocab(os.path.join('./data', preprocess.CHAR_VOCAB_PATH))
-        label = preprocess.read_label(os.path.join('./data', preprocess.LABEL_ID_PATH))
+        vocab = preprocess.read_vocab(os.path.join('data', preprocess.CHAR_VOCAB_PATH))
+        label = preprocess.read_label(os.path.join('data', preprocess.LABEL_ID_PATH))
 
         t1 = datetime.datetime.now()
         for title in titles:
@@ -81,6 +82,9 @@ def predict():
 
 if __name__ == '__main__':
     predict()
+
+
+
 
 
 
