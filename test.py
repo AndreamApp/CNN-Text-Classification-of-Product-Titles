@@ -31,7 +31,7 @@ def predict():
 
         input_x = graph.get_operation_by_name("input_x").outputs[0]
         dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
-        prediction = graph.get_operation_by_name("prediction").outputs[0]
+        prediction = graph.get_operation_by_name("output/prediction").outputs[0]
         training = graph.get_operation_by_name("training").outputs[0]
 
         def predict_step(batch_x):
