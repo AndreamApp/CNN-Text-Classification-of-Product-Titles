@@ -268,14 +268,18 @@ def to_id(content, vocab, mode='CHAR'):
     title_id = [vocab[x] for x in content if x in vocab]
 
     max_length = 0
-    # 将文本pad为固定长度
     if mode == 'CHAR':
         max_length = MAX_CHAR_TEXT_LENGTH
     elif mode == 'WORD':
         max_length = MAX_WORD_TEXT_LENGTH
+
     if len(title_id) < max_length:
+        # 文本小于max_length, 将文本pad为固定长度
         padding = [vocab['<PAD>'] for _ in range(MAX_CHAR_TEXT_LENGTH - len(title_id))]
         title_id.extend(padding)
+    elif len(title_id) > max_length:
+        # 文本大于max_length，将文本裁剪
+        title_id = title_id[:max_length]
 
     return title_id
 # ===========================================================================

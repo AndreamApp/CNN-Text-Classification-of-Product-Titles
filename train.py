@@ -80,7 +80,7 @@ def train():
             total_accuracy = 0.0
             # 验证10次取平均值
             for _ in range(10):
-                loss, accuracy, summery = sess.run([cnn.loss, cnn.accuracy, merged_summary],
+                step, loss, accuracy, summery = sess.run([global_step, cnn.loss, cnn.accuracy, merged_summary],
                                             feed_dict)
                 total_loss += loss
                 total_accuracy += accuracy
@@ -89,7 +89,7 @@ def train():
 
             print('Validation loss: %f, accuracy: %f' % (total_loss, total_accuracy))
             # 把结果写入Tensorboard中
-            valid_summary_writer.add_summary(summery)
+            valid_summary_writer.add_summary(summery, step)
 
         sess.run(tf.global_variables_initializer())
 

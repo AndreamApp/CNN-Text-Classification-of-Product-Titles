@@ -14,7 +14,7 @@ class CNNConfig(object):
     train_mode = 'CHAR'     # 训练模式，'CHAR'为字符级，'WORD'为词级
 
     class_num = 1258        # 输出类别的数目
-    embedding_dim = 128      # 词向量维度（64）
+    embedding_dim = 128      # 词向量维度
     filter_num = 300        # 卷积核数目
     filter_sizes = [2, 3, 4]         # 卷积核尺寸
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
@@ -66,7 +66,6 @@ class TextCNN(object):
         将数据集转换为id表示
         """
         batch_x = []
-        # 读取词汇表
         if self.train_mode == 'CHAR':
             # 1.字符级
             for title in titles:
@@ -81,6 +80,29 @@ class TextCNN(object):
         batch_x = np.stack(batch_x)
         batch_y = labels
         return batch_x, batch_y
+
+    def convert_test_input(self, titles):
+        """
+        将测试集tsv数据转为numpy数组
+        :param titles:
+        :return:
+        """
+        batch_x = []
+        if self.train_mode == 'CHAR':
+            # 1.字符级
+            for title in titles:
+                valid_title = title.decode('gb18030').strip('\t')
+                batch_x.append(preprocess.to_id(valid_title, self.vocab, self.train_mode))
+
+        elif self.train_mode == 'WORD':
+            # 2.词级
+            for title in titles:
+                valid_title = title.decode('gb18030').strip('\t')
+                t = cut.cut_and_filter(valid_title)
+                batch_x.append(preprocess.to_id(t, self.vocab, self.train_mode))
+
+        batch_x = np.stack(batch_x)
+        return batch_x
 
     def setCNN(self):
         # Input layer
@@ -211,8 +233,8 @@ class TextCNN(object):
 
         # Splite dataset
         # TODO: 使用k折交叉验证
-        train_dataset = dataset.take(preprocess.TRAIN_SIZE).batch(self.train_batch_size).repeat()
-        valid_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.valid_batch_size).repeat()
+        valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size).repeat()
+        train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
 
         # Create a reinitializable iterator
         train_iterator = train_dataset.make_initializable_iterator()
@@ -229,6 +251,14 @@ class TextCNN(object):
         # Date preparation ends.
 
     def prepare_test_data(self):
+        # 读取词汇表
+        if self.train_mode == 'CHAR':
+            # 1.字符级
+            self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
+        elif self.train_mode == 'WORD':
+            # 2.词级
+            self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
+
         # 测试集有标题，读取时注意跳过第一行
         dataset = TextLineDataset(os.path.join('data',preprocess.TEST_PATH))
         dataset = dataset.shuffle(preprocess.TOTAL_TEST_SIZE).batch(self.test_batch_size)
