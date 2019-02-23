@@ -1,5 +1,6 @@
 import csv
 from data import cut
+from tensorflow.data.experimental import CsvDataset
 import numpy as np
 import tensorflow as tf
 import datetime
@@ -7,7 +8,7 @@ import collections
 import re
 
 SGNS_WORD_NGRAM_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
-SGNS_WORD_PATH = ''
+SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
 TRAIN_WITH_ID_PATH = 'train_with_id.csv'
@@ -29,7 +30,7 @@ MAX_WORD_TEXT_LENGTH = 44
 
 VOCAB_SIZE = 4000
 
-word_vecs = {}
+vec_dim = 300       # 预训练词向量的维度
 
 
 # 给标签分配id
@@ -101,59 +102,64 @@ def recreate_data_with_id():
     readfile.close()
 
 
-def load_vecs(fname):
+def load_vecs(fname=SGNS_WORD_NGRAM_PATH):
     """
     加载词向量文件。\n
     :return: 加载好的词向量dict
     """
-    line = ''
+    vecs_dict = {}
     # 加载词向量表
     with open(fname, 'r', encoding='utf-8') as f:
         print('Reading word vectors file...')
         info = f.readline().split()  # 跳过第一行
         print('Total:', info[0], 'dimension:', info[1])
+
         starttime = datetime.datetime.now()
+
         while (True):
             line = f.readline()
             if line == '':
                 break
             linewords = line.split()
             word = linewords[0]  # 词
-            vec = linewords[1:]
-            for i in range(len(vec)):
-                vec[i] = float(vec[i])
+            vec = [float(x) for x in linewords[1:]]
             vec = np.asarray(vec, dtype=np.float32)  # 向量
-            word_vecs[word] = vec  # 保存到vecs中
+            vecs_dict[word] = vec  # 保存到word_vecs中
+
         endtime = datetime.datetime.now()
         dt = endtime - starttime
         print('Reading succeed. Total time:', str(int(dt.seconds / 60)) + 'min' + str(dt.seconds) + 'sec')
 
-
-def add_word(word):
-    # If a word isn't in the vocabulary, assign a random vector to it.
-    # Referring to https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
-    # TODO: Uncertain method to generate random vector
-    vec = np.random.uniform(-0.25, 0.25, [300])
-    word_vecs[word] = vec
-    return vec
+    return vecs_dict
 
 
-def get_word_vecs(string):
-    # Return a list of word vectors of a string.
-    # Note: The string read from this .csv file must be decoded with 'gbk' first
-    words = cut.cut_and_filter(string)
+def get_word_vecs(string, vecs_dict):
+    # 将一个字符串转换为n*300的词向量列表
+    def add_word(word):
+        # If a word isn't in the vocabulary, assign a random vector to it.
+        # Referring to https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+        # TODO: Uncertain method to generate random vector
+        vec = np.random.uniform(-0.25, 0.25, [300])
+        vecs_dict[word] = vec
+        return vec
+
+    words = cut.cut_and_filter(string.strip())
 
     # Pad the string with spaces to fix text_length
-    if len(words) < MAX_CHAR_TEXT_LENGTH:
-        for _ in range(MAX_CHAR_TEXT_LENGTH - len(words)):
-            words.append('<PAD>')
+    if len(words) < MAX_WORD_TEXT_LENGTH:
+        # 文本小于max_length, 将文本pad为固定长度
+        padding = ['<PAD>' for _ in range(MAX_WORD_TEXT_LENGTH - len(words))]
+        words.extend(padding)
+    elif len(words) > MAX_WORD_TEXT_LENGTH:
+        # 文本大于max_length，将文本裁剪
+        words = words[:MAX_WORD_TEXT_LENGTH]
 
-    vec = []
+    vecs = []
     for word in words:
-        if word not in word_vecs:
+        if word not in vecs_dict:
             add_word(word)
-        vec.append(word_vecs[word])
-    return np.asarray(vec, np.float32)
+        vecs.append(vecs_dict[word])
+    return np.asarray(vecs, np.float32)
 
 
 def get_max_text_length(fname):
@@ -260,9 +266,6 @@ def read_label(label_ids_path):
 def to_id(content, vocab, mode='CHAR'):
     """
     将数据集从文字转换为固定长度的id序列表示
-    :param content:
-    :param vocab:
-    :return:
     """
 
     title_id = [vocab[x] for x in content if x in vocab]
@@ -270,8 +273,8 @@ def to_id(content, vocab, mode='CHAR'):
     max_length = 0
     if mode == 'CHAR':
         max_length = MAX_CHAR_TEXT_LENGTH
-    elif mode == 'WORD':
-        max_length = MAX_WORD_TEXT_LENGTH
+    #elif mode == 'WORD':
+    #    max_length = MAX_WORD_TEXT_LENGTH
 
     if len(title_id) < max_length:
         # 文本小于max_length, 将文本pad为固定长度
@@ -286,27 +289,24 @@ def to_id(content, vocab, mode='CHAR'):
 
 
 if __name__ == '__main__':
-    #dataset = CsvDataset(
-    #    TRAIN_WITH_ID_PATH,
-    #    [tf.string, tf.int32],
-    #).batch(32)
-#
-    #iterator = dataset.make_initializable_iterator()
-    #next_element = iterator.get_next()
-    #with tf.Session() as sess:
-    #    sess.run(iterator.initializer)
-    #    titles, labels = sess.run(next_element)
-    #    batch_x = []
-    #    for title in titles:
-    #        vecs = get_word_vecs(title)
-    #        batch_x.append(vecs)
-    #    batch_x = np.stack(batch_x)
-    #    batch_x = tf.constant(batch_x)
-    #    labels = tf.one_hot(labels, depth=1258)
-    #    print(batch_x.shape)
-    #    print(labels.eval())
+    # dataset = CsvDataset(
+    #     TRAIN_WITH_ID_PATH,
+    #     [tf.string, tf.int32],
+    # ).batch(32)
+    # iterator = dataset.make_one_shot_iterator()
+    # next_element = iterator.get_next()
+    # vecs_dict = load_vecs()
 
-    #build_vocab(TRAIN_WITH_ID_PATH, WORD_VOCAB_PATH)
-    vocab = read_vocab(CHAR_VOCAB_PATH)
-    print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
-    #print(get_max_text_length(TRAIN_WITH_ID_PATH))
+    # with tf.Session() as sess:
+    #     titles, labels = sess.run(next_element)
+    #     batch_x = []
+    #     for title in titles:
+    #         t = cut.cut_and_filter(title.decode('gbk'))
+    #         batch_x.append(get_word_vecs(title, vecs_dict))
+    #     batch_x = np.stack(batch_x)
+    #     batch_x = tf.constant(batch_x)
+    #     print(batch_x.shape)
+    pass
+    # vocab = read_vocab(CHAR_VOCAB_PATH)
+    # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
+    # print(get_max_text_length(TRAIN_WITH_ID_PATH))
