@@ -178,7 +178,7 @@ class TextCNN(object):
 
     def convert_input(self, titles, labels):
         """
-        将数据集转换为id或词向量表示
+        将训练集数据转换为id或词向量表示
         """
         batch_x = []
         if self.train_mode == 'CHAR':
@@ -198,7 +198,7 @@ class TextCNN(object):
 
     def convert_test_input(self, titles):
         """
-        将测试集tsv数据转为numpy数组
+        将测试集tsv数据转为id或词向量表示
         :param titles:
         :return:
         """

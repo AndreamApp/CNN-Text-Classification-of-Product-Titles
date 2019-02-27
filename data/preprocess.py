@@ -6,6 +6,7 @@ import tensorflow as tf
 import datetime
 import collections
 import re
+import os
 
 SGNS_WORD_NGRAM_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
@@ -61,8 +62,8 @@ def assign_id():
     # ----------------------------------------------------------------------
 
 
-def recreate_data_with_id():
-    # 重新生成tag为id的训练集
+def recreate_data_with_id_label():
+    # 重新生成标签为id的训练集
     ids = {}
     label = ''
     ID = 0
@@ -82,6 +83,7 @@ def recreate_data_with_id():
                     break  # 标签最后不加空格
                 label += ' '
             ID = line.split()[-1]  # 获取ID
+
             ids[label] = ID
 
     writefile = open(TRAIN_WITH_ID_PATH, 'w', newline='')
@@ -89,7 +91,7 @@ def recreate_data_with_id():
     readfile = open(TRAIN_PATH, 'r')
     reader = csv.reader(readfile)
     next(reader)
-    print('Writing traing file with id...')
+    print('Writing traing file with id label...')
 
     for row in reader:
         title = row[0]
@@ -100,6 +102,31 @@ def recreate_data_with_id():
             print('KeyError occur!', title, tag)
     writefile.close()
     readfile.close()
+
+
+def recreate_data_with_id_title():
+    """
+    重新生成标题为id的训练集，转换成Deep Learning Studio规定的训练集csv格式
+    文本为分号分隔的字符id，标签为id
+    即:1;0;0;5;555;999;888;777,1
+    """
+    vocab = read_vocab(CHAR_VOCAB_PATH)
+    writefile = open(TEMP_PATH, 'w', newline='')
+    writer = csv.writer(writefile)
+    readfile = open(TRAIN_WITH_ID_PATH, 'r')
+    reader = csv.reader(readfile)
+    print('Writing training file with id title...')
+
+    for row in reader:
+        id_title = [str(x) for x in to_id(row[0], vocab, 'CHAR')]
+        id_title = ';'.join(id_title)
+        label = row[1]
+        writer.writerow([id_title, label])
+
+    writefile.close()
+    readfile.close()
+
+    os.rename(TEMP_PATH, 'train_id_with_id.csv')
 
 
 def load_vecs(fname=SGNS_WORD_NGRAM_PATH):
@@ -289,14 +316,6 @@ def to_id(content, vocab, mode='CHAR'):
 
 
 if __name__ == '__main__':
-    # dataset = CsvDataset(
-    #     TRAIN_WITH_ID_PATH,
-    #     [tf.string, tf.int32],
-    # ).batch(32)
-    # iterator = dataset.make_one_shot_iterator()
-    # next_element = iterator.get_next()
-    # vecs_dict = load_vecs()
-
     # with tf.Session() as sess:
     #     titles, labels = sess.run(next_element)
     #     batch_x = []
@@ -306,7 +325,6 @@ if __name__ == '__main__':
     #     batch_x = np.stack(batch_x)
     #     batch_x = tf.constant(batch_x)
     #     print(batch_x.shape)
-    pass
-    # vocab = read_vocab(CHAR_VOCAB_PATH)
+    recreate_data_with_id_title()
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
     # print(get_max_text_length(TRAIN_WITH_ID_PATH))

@@ -70,6 +70,8 @@ def predict():
         # pre = predict_step(batch_x)
         # results = [label[x] for x in pre]
 
+        # 跳过测试集的标题
+        sess.run(next_element)
         i = 0
         t1 = datetime.datetime.now()
         while True:
