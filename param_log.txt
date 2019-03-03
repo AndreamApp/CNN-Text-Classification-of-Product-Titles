@@ -35,8 +35,8 @@ valid 92.0%
     valid_batch_size = 3000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 30001        # 总迭代轮次
-valid 93%
+    epoch_num = 25001        # 总迭代轮次
+valid 93.2333%
 
     train_mode = 'WORD'     # 训练模式，'CHAR'为字符级，'WORD'为词级
 

@@ -11,14 +11,15 @@ class CNNConfig(object):
     """
     # TODO: 在此修改TextCNN以及训练的参数
     """
-    train_mode = 'WORD'     # 训练模式，'CHAR'为字符级，'WORD'为词级
+    train_mode = 'CHAR'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
+                            # 'WORD'为词级，样本分词并使用word2vec预训练的词向量
 
     class_num = 1258        # 输出类别的数目
     embedding_dim = 128      # 词向量维度，'CHAR'模式适用，
                             # 'WORD'模式默认为preprocess.py中定义的vec_dim
 
     filter_num = 300        # 卷积核数目
-    filter_sizes = [1, 2, 3]         # 卷积核尺寸
+    filter_sizes = [1, 2, 3, 4, 5]         # 卷积核尺寸
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
 
     dense_unit_num = 512        # 全连接层神经元
@@ -232,13 +233,15 @@ class TextCNN(object):
             # 读取词向量文件
             self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_NGRAM_PATH))
 
-        # Load data
+        # CsvDataset类加载csv文件
         dataset = CsvDataset(os.path.join('./data',preprocess.TRAIN_WITH_ID_PATH),
                              [tf.string, tf.int32]).shuffle(preprocess.TOTAL_TRAIN_SIZE)
 
-        # Splite dataset
+        # 分割数据集
         # TODO: 使用k折交叉验证
+        # 取前VALID_SIZE个样本给验证集
         valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size).repeat()
+        # 剩下的给训练集
         train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
 
         # Create a reinitializable iterator
@@ -248,6 +251,8 @@ class TextCNN(object):
         train_init_op = train_iterator.initializer
         valid_init_op = valid_iterator.initializer
 
+        # 要获取元素，先sess.run(train_init_op)初始化迭代器
+        # 再sess.run(next_train_element)
         next_train_element = train_iterator.get_next()
         next_valid_element = valid_iterator.get_next()
 

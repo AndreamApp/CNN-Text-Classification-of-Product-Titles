@@ -10,6 +10,7 @@ def cut_and_filter(string):
     """
     # 全模式，试图最精确地分词，成词后还将细分
     #wordgen = jieba.cut(str, cut_all=True)
+
     # 精确模式，能成词即分开，不考虑细分
     wordgen = jieba.cut(string, cut_all=False)
     # 精确模式对于商品名称分词比较适用，因为商品品牌/型号/参数不需要分割，而最代表商品本质的词语一般不需要再细分
