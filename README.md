@@ -19,6 +19,11 @@
 `train.py`包含训练的代码   
 `test.py`包含测试的代码   
 
+# Environment
+* Windows 10
+* GTX 970M 3G
+* Intel i7-6700HQ
+
 # Train
     python train.py
 
