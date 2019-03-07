@@ -18,7 +18,7 @@ def train():
         print('Setting Tensorboard and Saver...')
         # 设置Saver和checkpoint来保存模型
         # ===================================================
-        checkpoint_dir = os.path.abspath("checkpoints")
+        checkpoint_dir = os.path.join(os.path.abspath("checkpoints"), "textcnn")
         checkpoint_prefix = os.path.join(checkpoint_dir, "model")
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)

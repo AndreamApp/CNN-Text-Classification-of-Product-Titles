@@ -24,7 +24,7 @@ def predict():
         # 读取保存的模型
         checkpoint_dir = os.path.abspath("checkpoints")
         checkpoint_file = tf.train.latest_checkpoint(checkpoint_dir)
-        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'model-30001.meta'))
+        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'model-25001.meta'))
         saver.restore(sess, checkpoint_file)
         graph = tf.get_default_graph()
 
@@ -48,46 +48,44 @@ def predict():
             pre = sess.run(prediction, feed_dict)
             return pre
 
-        # 读取词汇表和标签id表
-        #vocab = preprocess.read_vocab(os.path.join('data', preprocess.CHAR_VOCAB_PATH))
-        #label = preprocess.read_label(os.path.join('data', preprocess.LABEL_ID_PATH))
+        # 自定义批量查询
+        # ================================================================================
+        label = preprocess.read_label(os.path.join('data', preprocess.LABEL_ID_PATH))
+        titles = ['特步男鞋运动鞋男2019春夏新款跑步鞋休闲鞋网面透气鞋子男士跑鞋',
+                  'Nike Air Zoom Grade 气垫跑步鞋924465-002-003-300-400-001-004',
+                  'NewBalance NB官方2019新款男鞋女鞋运动鞋997HCA复古休闲小白鞋',
+                  '海南菠萝蜜40斤现摘现发新鲜水果包邮孕妇时令假榴莲非红心30 25',
+                  '暴龙太阳镜男复古时尚蛤蟆镜女高清偏光开车驾驶墨镜可配近视眼镜',
+                  '飞利浦电动剃须刀S300 S301 S330 S1010充电式全身水洗男士刮胡刀',]
 
-        # titles = ['特步男鞋运动鞋男2019春夏新款跑步鞋休闲鞋网面透气鞋子男士跑鞋',
-        #           'Nike Air Zoom Grade 气垫跑步鞋924465-002-003-300-400-001-004',
-        #           'NewBalance NB官方2019新款男鞋女鞋运动鞋997HCA复古休闲小白鞋',
-        #           '海南菠萝蜜40斤现摘现发新鲜水果包邮孕妇时令假榴莲非红心30 25',
-        #           '暴龙太阳镜男复古时尚蛤蟆镜女高清偏光开车驾驶墨镜可配近视眼镜',
-        #           '花花公子风衣男中长款春秋季韩版英伦帅气商务休闲修身大衣薄外套',
-        #           'avigers艾薇格诗冰清防晒霜套装 妆后葵儿保湿滋润隔离霜官方正品',
-        #           'SPRS摩托车骑行靴男竞技防滑防护公路防摔赛车鞋靴机车鞋装备赛道',
-        #           '万代高达模型HG 1/144 00雪崩能天使七剑00Q妖天使00R拼装敢达',
-        #           '【现货】EVA 新世纪福音战士Q 展 明日香 绫波丽 渚薰 限定 手办',
-        #           '创想电玩 PS4主机全新 PS4家用游戏机 国行 港版slim500G/1TB/PRO',
-        #           '浩成进口实木小提琴手工儿童成人初学者专业级考级演奏小提琴乐器',
-        #           '19款保时捷卡宴新macan脚垫18款帕拉梅拉Panamera全包围汽车脚垫 保时捷']
-        # batch_x = []
-        # 获取预测结果
-        # pre = predict_step(batch_x)
-        # results = [label[x] for x in pre]
-
+        batch_x = []
+        for title in titles:
+            batch_x.append(preprocess.to_id(title, cnn.vocab, cnn.train_mode))
+        batch_x = np.stack(batch_x)
+        pre = predict_step(batch_x)
+        results = [label[x] for x in pre]
+        print(results)
+        # =====================================================================================
+        # 给测试集打标签
+        # ====================================================================================
         # 跳过测试集的标题
-        sess.run(next_element)
-        i = 0
-        t1 = datetime.datetime.now()
-        while True:
-            try:
-                titles = sess.run(next_element)
-                batch_x = cnn.convert_test_input(titles)
-                predict_step(batch_x)
-                i += 1
-            except tf.errors.OutOfRangeError:
-                break
-
-        t2 = datetime.datetime.now()
-        dt = (t2-t1).min
-
-        print('查询总耗时: %fmin' % dt)
-        print('平均每条耗时: %fmin' % (dt/i))
+        # sess.run(next_element)
+        # i = 0
+        # t1 = datetime.datetime.now()
+        # while True:
+        #     try:
+        #         titles = sess.run(next_element)
+        #         batch_x = cnn.convert_test_input(titles)
+        #         predict_step(batch_x)
+        #         i += 1
+        #     except tf.errors.OutOfRangeError:
+        #         break
+#
+        # t2 = datetime.datetime.now()
+        # dt = (t2-t1).min
+#
+        # print('查询总耗时: %fmin' % dt)
+        # print('平均每条耗时: %fmin' % (dt/i))
         # 450w条数据约15分钟
 
     # ==================================================================

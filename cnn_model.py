@@ -80,6 +80,7 @@ class TextCNN(object):
             self.input_x = tf.placeholder(tf.float32, [None, self.text_length, self.embedding_dim], name="input_x")
 
         self.labels = tf.placeholder(tf.int32, [None], name="input_y")
+        # 把数字标签转为one hot形式
         self.input_y = tf.one_hot(self.labels, self.class_num)
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
@@ -88,11 +89,13 @@ class TextCNN(object):
         self.training = tf.placeholder(tf.bool, name='training')
 
         if self.train_mode == 'CHAR':
+            # 词嵌入层
             with tf.device('/cpu:0'), tf.name_scope('embedding'):
                 W = tf.Variable(tf.random_uniform([self.vocab_size, self.embedding_dim], -1.0, 1.0))
                 self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
                 self.embedding_inputs_expanded = tf.expand_dims(self.embedding_inputs, -1)
         elif self.train_mode == 'WORD':
+            # 不通过词嵌入层，只转换input_x的形状
             self.embedding_inputs_expanded = tf.expand_dims(self.input_x, -1)
 
         # The final pooling output, containing outputs from each filter
