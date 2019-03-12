@@ -28,8 +28,8 @@ def train():
 
         # 配置Tensorboard，重新训练时，请将tensorboard文件夹删除，不然图会覆盖
         # ====================================================================
-        train_tensorboard_dir = 'tensorboard/textcnn/train'
-        valid_tensorboard_dir = 'tensorboard/textcnn/valid'
+        train_tensorboard_dir = 'tensorboard/textcnn/train/' + config.train_mode
+        valid_tensorboard_dir = 'tensorboard/textcnn/valid/' + config.train_mode
         if not os.path.exists(train_tensorboard_dir):
             os.makedirs(train_tensorboard_dir)
         if not os.path.exists(valid_tensorboard_dir):

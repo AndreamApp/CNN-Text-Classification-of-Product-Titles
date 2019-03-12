@@ -11,7 +11,7 @@ class RNNConfig(object):
     """
     # TODO: 在此修改RNN以及训练的参数
     """
-    train_mode = 'CHAR'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
+    train_mode = 'CHAR-RANDOM'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
                             # 'WORD'为词级，样本分词并使用word2vec预训练的词向量
 
     class_num = 1258        # 输出类别的数目
@@ -48,7 +48,7 @@ class RNN(object):
         self.valid_batch_size = config.valid_batch_size
         self.test_batch_size = config.test_batch_size
 
-        if config.train_mode == 'CHAR':
+        if config.train_mode == 'CHAR-RANDOM':
             # 文本长度
             self.text_length = preprocess.MAX_CHAR_TEXT_LENGTH
             # 词嵌入维度
@@ -75,7 +75,7 @@ class RNN(object):
     def setRNN(self):
         # 输入层
         # Placeholders for input, output and dropout
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             self.input_x = tf.placeholder(tf.int32, [None, self.text_length], name="input_x")
         elif self.train_mode == 'WORD':
             self.input_x = tf.placeholder(tf.float32, [None, self.text_length, self.embedding_dim], name="input_x")
@@ -88,11 +88,12 @@ class RNN(object):
         # 验证或测试时应为False
         self.training = tf.placeholder(tf.bool, name='training')
 
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             # 词嵌入层
             with tf.device('/cpu:0'), tf.name_scope('embedding'):
                 W = tf.Variable(tf.random_uniform([self.vocab_size, self.embedding_dim], -1.0, 1.0))
                 self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
+                print(self.embedding_inputs.shape)
         elif self.train_mode == 'WORD':
             # 不通过词嵌入层
             self.embedding_inputs = self.input_x
@@ -152,7 +153,7 @@ class RNN(object):
         将训练集数据转换为id或词向量表示
         """
         batch_x = []
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             # 1.id
             for title in titles:
                 batch_x.append(preprocess.to_id(title.decode('gbk'), self.vocab, self.train_mode))
@@ -174,7 +175,7 @@ class RNN(object):
         :return:
         """
         batch_x = []
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             # 1.id
             for title in titles:
                 valid_title = title.decode('gb18030').strip('\t')
@@ -193,7 +194,7 @@ class RNN(object):
     def prepare_data(self):
         # Data preparation.
         # =======================================================
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             # 1.字符级
             # 读取词汇表
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
@@ -232,7 +233,7 @@ class RNN(object):
 
     def prepare_test_data(self):
         # 读取词汇表
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             # 1.字符级
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
         elif self.train_mode == 'WORD':

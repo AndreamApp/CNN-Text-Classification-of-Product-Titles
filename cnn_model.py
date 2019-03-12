@@ -10,7 +10,7 @@ class CNNConfig(object):
     """
     # TODO: 在此修改TextCNN以及训练的参数
     """
-    train_mode = 'CHAR-RANDOM'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
+    train_mode = 'WORD-NON-STATIC'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
                                 # 'WORD'为词级，使用word2vec预训练的词向量
                                 # 'WORD-NON-STATIC'同'WORD', 但是词向量能够继续在训练中优化
     class_num = 1258        # 输出类别的数目
@@ -51,7 +51,7 @@ class TextCNN(object):
             # 词嵌入维度
             self.embedding_dim = config.embedding_dim
 
-        elif config.train_mode == 'WORD' or config.train_mode == 'WORD-NON-STATIC':
+        elif config.train_mode == 'WORD-NON-STATIC':
             self.text_length = preprocess.MAX_WORD_TEXT_LENGTH
             self.embedding_dim = preprocess.vec_dim
 
@@ -80,8 +80,6 @@ class TextCNN(object):
         # 输入层
         if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
             self.input_x = tf.placeholder(tf.int32, [None, self.text_length], name="input_x")
-        elif self.train_mode == 'WORD':
-            self.input_x = tf.placeholder(tf.float32, [None, self.text_length, self.embedding_dim], name="input_x")
 
         self.labels = tf.placeholder(tf.int32, [None], name="input_y")
         # 把数字标签转为one hot形式
@@ -103,9 +101,6 @@ class TextCNN(object):
                     W = tf.Variable(self.embedding_W)
                 self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
                 self.embedding_inputs_expanded = tf.expand_dims(self.embedding_inputs, -1)
-        elif self.train_mode == 'WORD':
-            # 不通过词嵌入层，只转换input_x的形状
-            self.embedding_inputs_expanded = tf.expand_dims(self.input_x, -1)
 
         # The final pooling output, containing outputs from each filter
         pool_outputs = []
@@ -205,16 +200,6 @@ class TextCNN(object):
                 batch_x.append(preprocess.to_id(title, self.vocab, self.train_mode))
                 batch_y.append(label)
 
-        elif self.train_mode == 'WORD':
-            # 2.词向量
-            for line in lines:
-                line_ = line.decode("gbk").strip().split(',')
-                title = str(line_[0:-1])  # 逗号前段为标题
-                label = str(line_[-1])  # 最后一项为标签
-                t = cut.cut_and_filter(title)
-                batch_x.append(preprocess.get_word_vecs(title, self.vecs_dict))
-                batch_y.append(label)
-
         batch_x = np.stack(batch_x)
         return batch_x, batch_y
 
@@ -231,13 +216,6 @@ class TextCNN(object):
                 valid_title = title.decode('gb18030').strip('\t')
                 batch_x.append(preprocess.to_id(valid_title, self.vocab, self.train_mode))
 
-        elif self.train_mode == 'WORD':
-            # 2.词向量
-            for title in titles:
-                valid_title = title.decode('gb18030').strip('\t')
-                t = cut.cut_and_filter(valid_title)
-                batch_x.append(preprocess.get_word_vecs(title, self.vecs_dict))
-
         batch_x = np.stack(batch_x)
         return batch_x
 
@@ -249,16 +227,10 @@ class TextCNN(object):
             # 读取词汇表
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
 
-        elif self.train_mode == 'WORD':
-            # 2.词级
-            # 读取词向量文件
-            self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_NGRAM_PATH))
-
         elif self.train_mode == 'WORD-NON-STATIC':
+            # 把预训练词向量的值读到变量中
             self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
             self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_PATH))
-            # 把预训练词向量的值读到变量中
-            # TODO:
             self.embedding_W = np.ndarray(shape=[self.vocab_size, self.embedding_dim], dtype=np.float32)
             for word in self.vocab:
                 # 第n行对应id为n的词的词向量
@@ -296,12 +268,12 @@ class TextCNN(object):
 
     def prepare_test_data(self):
         # 读取词汇表
-        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
+        if self.train_mode == 'CHAR-RANDOM':
             # 1.字符级
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
-        elif self.train_mode == 'WORD':
-            # 2.词级
-            self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_NGRAM_PATH))
+
+        elif self.train_mode == 'WORD-NON-STATIC':
+            self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
 
         # 测试集有标题，读取时注意跳过第一行
         dataset = TextLineDataset(os.path.join('data',preprocess.TEST_PATH))
