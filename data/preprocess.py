@@ -8,7 +8,7 @@ import collections
 import re
 import os
 
-SGNS_WORD_NGRAM_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
+SGNS_WORD_NGRAM_PATH = 'sgns.target.word-ngram.1-2.dynwin5.thr10.neg5.dim300.iter5'
 SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
@@ -25,7 +25,7 @@ VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
 TOTAL_TEST_SIZE = 4500000
 
 # 字符级的文本最长长度
-MAX_CHAR_TEXT_LENGTH = 86
+MAX_CHAR_TEXT_LENGTH = 60
 # 词级的文本最长长度
 MAX_WORD_TEXT_LENGTH = 44
 
@@ -104,29 +104,29 @@ def recreate_data_with_id_label():
     readfile.close()
 
 
-def recreate_data_with_id_title():
-    """
-    重新生成标题为id的训练集，转换成Deep Learning Studio规定的训练集csv格式
-    文本为分号分隔的字符id，标签为id
-    即:1;0;0;5;555;999;888;777,1
-    """
-    vocab = read_vocab(CHAR_VOCAB_PATH)
-    writefile = open(TEMP_PATH, 'w', newline='')
-    writer = csv.writer(writefile)
-    readfile = open(TRAIN_WITH_ID_PATH, 'r')
-    reader = csv.reader(readfile)
-    print('Writing training file with id title...')
-
-    for row in reader:
-        id_title = [str(x) for x in to_id(row[0], vocab, 'CHAR')]
-        id_title = ';'.join(id_title)
-        label = row[1]
-        writer.writerow([id_title, label])
-
-    writefile.close()
-    readfile.close()
-
-    os.rename(TEMP_PATH, 'train_id_with_id.csv')
+# def recreate_data_with_id_title():
+#     """
+#     重新生成标题为id的训练集，转换成Deep Learning Studio规定的训练集csv格式
+#     文本为分号分隔的字符id，标签为id
+#     即:1;0;0;5;555;999;888;777,1
+#     """
+#     vocab = read_vocab(CHAR_VOCAB_PATH)
+#     writefile = open(TEMP_PATH, 'w', newline='')
+#     writer = csv.writer(writefile)
+#     readfile = open(TRAIN_WITH_ID_PATH, 'r')
+#     reader = csv.reader(readfile)
+#     print('Writing training file with id title...')
+#
+#     for row in reader:
+#         id_title = [str(x) for x in to_id(row[0], vocab, 'CHAR')]
+#         id_title = ';'.join(id_title)
+#         label = row[1]
+#         writer.writerow([id_title, label])
+#
+#     writefile.close()
+#     readfile.close()
+#
+#     os.rename(TEMP_PATH, 'train_id_with_id.csv')
 
 
 def load_vecs(fname=SGNS_WORD_NGRAM_PATH):
@@ -143,7 +143,7 @@ def load_vecs(fname=SGNS_WORD_NGRAM_PATH):
 
         starttime = datetime.datetime.now()
 
-        while (True):
+        while True:
             line = f.readline()
             if line == '':
                 break
@@ -160,15 +160,17 @@ def load_vecs(fname=SGNS_WORD_NGRAM_PATH):
     return vecs_dict
 
 
-def get_word_vecs(string, vecs_dict):
-    # 将一个字符串转换为n*300的词向量列表
-    def add_word(word):
-        # If a word isn't in the vocabulary, assign a random vector to it.
+def add_word(word, vecs_dict):
+        # 如果出现预训练词向量中没有的词，随机生成词向量
         # Referring to https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
         # TODO: Uncertain method to generate random vector
         vec = np.random.uniform(-0.25, 0.25, [300])
         vecs_dict[word] = vec
         return vec
+
+
+def get_word_vecs(string, vecs_dict):
+    # 将一个字符串转换为n*300的词向量列表
 
     words = cut.cut_and_filter(string.strip())
 
@@ -184,7 +186,7 @@ def get_word_vecs(string, vecs_dict):
     vecs = []
     for word in words:
         if word not in vecs_dict:
-            add_word(word)
+            add_word(word, vecs_dict)
         vecs.append(vecs_dict[word])
     return np.asarray(vecs, np.float32)
 
@@ -298,14 +300,14 @@ def to_id(content, vocab, mode='CHAR'):
     title_id = [vocab[x] for x in content if x in vocab]
 
     max_length = 0
-    if mode == 'CHAR':
+    if mode == 'CHAR-RANDOM':
         max_length = MAX_CHAR_TEXT_LENGTH
-    #elif mode == 'WORD':
-    #    max_length = MAX_WORD_TEXT_LENGTH
+    elif mode == 'WORD-NON-STATIC':
+        max_length = MAX_WORD_TEXT_LENGTH
 
     if len(title_id) < max_length:
         # 文本小于max_length, 将文本pad为固定长度
-        padding = [vocab['<PAD>'] for _ in range(MAX_CHAR_TEXT_LENGTH - len(title_id))]
+        padding = [vocab['<PAD>'] for _ in range(max_length - len(title_id))]
         title_id.extend(padding)
     elif len(title_id) > max_length:
         # 文本大于max_length，将文本裁剪
@@ -325,6 +327,6 @@ if __name__ == '__main__':
     #     batch_x = np.stack(batch_x)
     #     batch_x = tf.constant(batch_x)
     #     print(batch_x.shape)
-    recreate_data_with_id_title()
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
     # print(get_max_text_length(TRAIN_WITH_ID_PATH))
+    pass

@@ -18,15 +18,15 @@ class RNNConfig(object):
     embedding_dim = 128      # 词向量维度，'CHAR'模式适用，
                             # 'WORD'模式默认为preprocess.py中定义的vec_dim
 
-    layer_num = 1      # rnn层数
-    units_num = 64    # rnn神经元数目
+    layer_num = 4      # rnn层数
+    units_num = 128    # rnn神经元数目
 
     dense_unit_num = 128        # 全连接层神经元
 
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
 
-    dropout_keep_prob = 0.5     # dropout保留比例（弃用）
-    learning_rate = 1e-3    # 学习率
+    dropout_keep_prob = 0.5     # dropout保留比例
+    learning_rate = 5e-3    # 学习率
 
     train_batch_size = 128         # 每批训练大小
     valid_batch_size = 3000       # 每批验证大小
@@ -100,14 +100,17 @@ class RNN(object):
         with tf.name_scope("batch_norm"):
             self.embedding_inputs = tf.layers.batch_normalization(self.embedding_inputs, training=self.training)
 
+        def basic_rnn_cell():
+            bcell = tf.nn.rnn_cell.BasicRNNCell(self.units_num)
+            return tf.nn.rnn_cell.DropoutWrapper(bcell, output_keep_prob=self.dropout_keep_prob)
+
         with tf.name_scope("RNN"):
             # 多层RNN网络，每层有units_num个神经元
             # =======================================================================================
-            cells = [tf.nn.rnn_cell.BasicRNNCell(self.units_num) for _ in range(self.layer_num)]
-            rnn_cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=True)
-
+            cells = [basic_rnn_cell() for _ in range(self.layer_num)]
+            cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=True)
             # output的形状为[batch_size, text_length, units_num]
-            output, states = tf.nn.dynamic_rnn(cell=rnn_cell, inputs=self.embedding_inputs, dtype=tf.float32)
+            output, states = tf.nn.dynamic_rnn(cell=cell, inputs=self.embedding_inputs, dtype=tf.float32)
             rnn_output = output[:, -1, :]  # 取最后一个时序作为输出结果
             # =========================================================================================
         with tf.name_scope("dense"):

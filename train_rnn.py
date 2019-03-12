@@ -35,8 +35,6 @@ def train():
         if not os.path.exists(valid_tensorboard_dir):
             os.makedirs(valid_tensorboard_dir)
         tf.summary.scalar('train_loss', rnn.loss)
-        # valid_loss = tf.Variable(tf.constant(0, dtype=tf.float32))
-        # tf.summary.scalar('valid_loss', )
         tf.summary.scalar('accuracy', rnn.accuracy)
         merged_summary = tf.summary.merge_all()
         train_summary_writer = tf.summary.FileWriter(train_tensorboard_dir, sess.graph)
@@ -45,7 +43,6 @@ def train():
 
         global_step = tf.Variable(0, trainable=False)
 
-        # 保证Batch normalization的执行
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):  # 保证train_op在update_ops执行之后再执行。
             train_op = tf.train.AdamOptimizer(config.learning_rate).minimize(rnn.loss, global_step)

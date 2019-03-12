@@ -4,6 +4,7 @@ from cnn_model import CNNConfig
 import os
 import datetime
 import time
+from data import preprocess
 
 
 def train():
@@ -19,7 +20,7 @@ def train():
         # 设置Saver和checkpoint来保存模型
         # ===================================================
         checkpoint_dir = os.path.join(os.path.abspath("checkpoints"), "textcnn")
-        checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+        checkpoint_prefix = os.path.join(checkpoint_dir, cnn.train_mode)
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         saver = tf.train.Saver(tf.global_variables())
@@ -33,9 +34,13 @@ def train():
             os.makedirs(train_tensorboard_dir)
         if not os.path.exists(valid_tensorboard_dir):
             os.makedirs(valid_tensorboard_dir)
-        tf.summary.scalar('loss', cnn.loss)
-        tf.summary.scalar('accuracy', cnn.accuracy)
-        merged_summary = tf.summary.merge_all()
+
+        merged_summary = tf.summary.merge([tf.summary.scalar('loss', cnn.loss),
+                                            tf.summary.scalar('accuracy', cnn.accuracy)])
+
+        merged_valid_summary = tf.summary.merge([tf.summary.scalar('valid_loss', cnn.valid_loss),
+                                                 tf.summary.scalar('valid_accuracy', cnn.valid_accuracy)])
+
         train_summary_writer = tf.summary.FileWriter(train_tensorboard_dir, sess.graph)
         valid_summary_writer = tf.summary.FileWriter(valid_tensorboard_dir, sess.graph)
         # =========================================================================
@@ -67,47 +72,58 @@ def train():
             # 把结果写入Tensorboard中
             train_summary_writer.add_summary(summery, step)
 
-        # 测试步骤
-        def valid_step(batch_x, batch_y):
-            feed_dict = {
-                cnn.input_x: batch_x,
-                cnn.labels: batch_y,
-                cnn.dropout_keep_prob: 1.0,
-                cnn.training: False
-            }
+        # 验证步骤
+        def valid_step(next_valid_element):
+            # 把valid_loss和valid_accuracy归零
+            sess.run(tf.assign(cnn.valid_loss, 0.0))
+            sess.run(tf.assign(cnn.valid_accuracy, 0.0))
+            i = 0
+            while True:
+                try:
+                    lines = sess.run(next_valid_element)
+                    batch_x, batch_y = cnn.convert_input(lines)
+                    feed_dict = {
+                        cnn.input_x: batch_x,
+                        cnn.labels: batch_y,
+                        cnn.dropout_keep_prob: 1.0,
+                        cnn.training: False
+                    }
+                    loss, accuracy = sess.run([cnn.loss, cnn.accuracy], feed_dict)
+                    # cnn.valid_loss += loss
+                    sess.run(cnn.valid_loss.assign_add(loss))
+                    # cnn.valid_accuracy += accuracy
+                    sess.run(cnn.valid_accuracy.assign_add(accuracy))
+                    i += 1
 
-            total_loss = 0.0
-            total_accuracy = 0.0
-            # 验证10次取平均值
-            for _ in range(10):
-                step, loss, accuracy, summery = sess.run([global_step, cnn.loss, cnn.accuracy, merged_summary],
-                                            feed_dict)
-                total_loss += loss
-                total_accuracy += accuracy
-            total_loss /= 10
-            total_accuracy /= 10
-
-            print('Validation loss: %f, accuracy: %f' % (total_loss, total_accuracy))
-            # 把结果写入Tensorboard中
-            valid_summary_writer.add_summary(summery, step)
+                except tf.errors.OutOfRangeError:
+                    # 遍历完验证集，然后对loss和accuracy求平均值
+                    # cnn.valid_loss /= i
+                    sess.run(cnn.valid_loss.assign(tf.math.divide(cnn.valid_loss, i)))
+                    # cnn.valid_accuracy /= i
+                    sess.run(cnn.valid_accuracy.assign(tf.math.divide(cnn.valid_accuracy, i)))
+                    step, valid_loss, valid_accuracy, valid_summary = sess.run([global_step, cnn.valid_loss,
+                                                                                cnn.valid_accuracy,
+                                                                                merged_valid_summary], feed_dict)
+                    print('Validation loss: %f, accuracy: %f' % (valid_loss, valid_accuracy))
+                    time.sleep(3)
+                    # 把结果写入Tensorboard中
+                    valid_summary_writer.add_summary(valid_summary, step)
+                    break
 
         sess.run(tf.global_variables_initializer())
 
         # 初始化训练集、验证集迭代器
         sess.run(train_init_op)
-        sess.run(valid_init_op)
 
         # Training loop
         for epoch in range(config.epoch_num):
-            titles, labels = sess.run(next_train_element)
-            batch_x, batch_y = cnn.convert_input(titles, labels)
+            lines = sess.run(next_train_element)
+            batch_x, batch_y = cnn.convert_input(lines)
             train_step(batch_x, batch_y, config.dropout_keep_prob)
             if epoch % config.valid_per_batch == 0:
-                titles, labels = sess.run(next_valid_element)
-                batch_x, batch_y = cnn.convert_input(titles, labels)
-                valid_step(batch_x, batch_y)
-                time.sleep(3)
-
+                # 重新初始化验证集迭代器
+                sess.run(valid_init_op)
+                valid_step(next_valid_element)
         train_summary_writer.close()
         valid_summary_writer.close()
 

@@ -1,5 +1,4 @@
 import tensorflow as tf
-from tensorflow.data.experimental import CsvDataset
 from tensorflow.data import TextLineDataset
 import numpy as np
 from data import preprocess
@@ -11,15 +10,15 @@ class CNNConfig(object):
     """
     # TODO: 在此修改TextCNN以及训练的参数
     """
-    train_mode = 'CHAR'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
-                            # 'WORD'为词级，样本分词并使用word2vec预训练的词向量
-
+    train_mode = 'CHAR-RANDOM'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
+                                # 'WORD'为词级，使用word2vec预训练的词向量
+                                # 'WORD-NON-STATIC'同'WORD', 但是词向量能够继续在训练中优化
     class_num = 1258        # 输出类别的数目
-    embedding_dim = 128      # 词向量维度，'CHAR'模式适用，
-                            # 'WORD'模式默认为preprocess.py中定义的vec_dim
+    embedding_dim = 128      # 词向量维度，仅'CHAR-RANDOM'模式适用，
+                            # 'WORD'及'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
 
     filter_num = 300        # 卷积核数目
-    filter_sizes = [1, 2, 3, 4, 5]         # 卷积核尺寸
+    filter_sizes = [2, 3, 4, 5, 6]         # 卷积核尺寸
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
 
     dense_unit_num = 512        # 全连接层神经元
@@ -31,7 +30,7 @@ class CNNConfig(object):
     valid_batch_size = 3000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 25001        # 总迭代轮次
+    epoch_num = 30001        # 总迭代轮次
 
 
 class TextCNN(object):
@@ -46,13 +45,13 @@ class TextCNN(object):
         self.valid_batch_size = config.valid_batch_size
         self.test_batch_size = config.test_batch_size
 
-        if config.train_mode == 'CHAR':
+        if config.train_mode == 'CHAR-RANDOM':
             # 文本长度
             self.text_length = preprocess.MAX_CHAR_TEXT_LENGTH
             # 词嵌入维度
             self.embedding_dim = config.embedding_dim
 
-        elif config.train_mode == 'WORD':
+        elif config.train_mode == 'WORD' or config.train_mode == 'WORD-NON-STATIC':
             self.text_length = preprocess.MAX_WORD_TEXT_LENGTH
             self.embedding_dim = preprocess.vec_dim
 
@@ -70,11 +69,16 @@ class TextCNN(object):
         self.prediction = None
         self.vocab = None
         self.vecs_dict = {}
+        self.embedding_W = None
+
+        # 此变量用来计算验证集的平均损失
+        self.valid_loss = tf.Variable(tf.constant(0.0, dtype=tf.float32))
+        # 平均准确率
+        self.valid_accuracy = tf.Variable(tf.constant(0.0, dtype=tf.float32))
 
     def setCNN(self):
-        # Input layer
-        # Placeholders for input, output and dropout
-        if self.train_mode == 'CHAR':
+        # 输入层
+        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
             self.input_x = tf.placeholder(tf.int32, [None, self.text_length], name="input_x")
         elif self.train_mode == 'WORD':
             self.input_x = tf.placeholder(tf.float32, [None, self.text_length, self.embedding_dim], name="input_x")
@@ -88,10 +92,15 @@ class TextCNN(object):
         # 验证或测试时应为False
         self.training = tf.placeholder(tf.bool, name='training')
 
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
             # 词嵌入层
             with tf.device('/cpu:0'), tf.name_scope('embedding'):
-                W = tf.Variable(tf.random_uniform([self.vocab_size, self.embedding_dim], -1.0, 1.0))
+                if self.train_mode == 'CHAR-RANDOM':
+                    # 随机初始化的词向量
+                    W = tf.Variable(tf.random_uniform([self.vocab_size, self.embedding_dim], -1.0, 1.0))
+                elif self.train_mode == 'WORD-NON-STATIC':
+                    # 用之前读入的预训练词向量
+                    W = tf.Variable(self.embedding_W)
                 self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
                 self.embedding_inputs_expanded = tf.expand_dims(self.embedding_inputs, -1)
         elif self.train_mode == 'WORD':
@@ -180,24 +189,33 @@ class TextCNN(object):
             correct_predictions = tf.equal(self.prediction, tf.argmax(self.input_y, 1))
             self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, tf.float32))
 
-    def convert_input(self, titles, labels):
+    def convert_input(self, lines):
         """
         将训练集数据转换为id或词向量表示
         """
         batch_x = []
-        if self.train_mode == 'CHAR':
+        batch_y = []
+        title = ""
+        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
             # 1.id
-            for title in titles:
-                batch_x.append(preprocess.to_id(title.decode('gbk'), self.vocab, self.train_mode))
+            for line in lines:
+                line_ = line.decode("gbk").strip().split(',')
+                title = str(line_[0:-1])    # 逗号前段为标题
+                label = str(line_[-1])      # 最后一项为标签
+                batch_x.append(preprocess.to_id(title, self.vocab, self.train_mode))
+                batch_y.append(label)
 
         elif self.train_mode == 'WORD':
             # 2.词向量
-            for title in titles:
-                t = cut.cut_and_filter(title.decode('gbk'))
+            for line in lines:
+                line_ = line.decode("gbk").strip().split(',')
+                title = str(line_[0:-1])  # 逗号前段为标题
+                label = str(line_[-1])  # 最后一项为标签
+                t = cut.cut_and_filter(title)
                 batch_x.append(preprocess.get_word_vecs(title, self.vecs_dict))
+                batch_y.append(label)
 
         batch_x = np.stack(batch_x)
-        batch_y = labels
         return batch_x, batch_y
 
     def convert_test_input(self, titles):
@@ -207,7 +225,7 @@ class TextCNN(object):
         :return:
         """
         batch_x = []
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
             # 1.id
             for title in titles:
                 valid_title = title.decode('gb18030').strip('\t')
@@ -226,24 +244,37 @@ class TextCNN(object):
     def prepare_data(self):
         # Data preparation.
         # =======================================================
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM':
             # 1.字符级
             # 读取词汇表
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
+
         elif self.train_mode == 'WORD':
             # 2.词级
-            # self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
             # 读取词向量文件
             self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_NGRAM_PATH))
 
+        elif self.train_mode == 'WORD-NON-STATIC':
+            self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
+            self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_PATH))
+            # 把预训练词向量的值读到变量中
+            # TODO:
+            self.embedding_W = np.ndarray(shape=[self.vocab_size, self.embedding_dim], dtype=np.float32)
+            for word in self.vocab:
+                # 第n行对应id为n的词的词向量
+                if word not in self.vecs_dict:
+                    preprocess.add_word(word, self.vecs_dict)
+                self.embedding_W[self.vocab[word]] = self.vecs_dict[word]
+
         # CsvDataset类加载csv文件
-        dataset = CsvDataset(os.path.join('./data',preprocess.TRAIN_WITH_ID_PATH),
-                             [tf.string, tf.int32]).shuffle(preprocess.TOTAL_TRAIN_SIZE)
+        # dataset = CsvDataset(os.path.join('./data',preprocess.TRAIN_WITH_ID_PATH),
+        #                      [tf.string, tf.int32]).shuffle(preprocess.TOTAL_TRAIN_SIZE)
+        dataset = TextLineDataset(os.path.join('.\data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
 
         # 分割数据集
         # TODO: 使用k折交叉验证
         # 取前VALID_SIZE个样本给验证集
-        valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size).repeat()
+        valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
         # 剩下的给训练集
         train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
 
@@ -265,12 +296,11 @@ class TextCNN(object):
 
     def prepare_test_data(self):
         # 读取词汇表
-        if self.train_mode == 'CHAR':
+        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
             # 1.字符级
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
         elif self.train_mode == 'WORD':
             # 2.词级
-            # self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
             self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_NGRAM_PATH))
 
         # 测试集有标题，读取时注意跳过第一行
