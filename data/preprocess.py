@@ -25,9 +25,11 @@ VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
 TOTAL_TEST_SIZE = 4500000
 
 # 字符级的文本最长长度
-MAX_CHAR_TEXT_LENGTH = 86
+# 平均样本长度为29.95003
+MAX_CHAR_TEXT_LENGTH = 29
 # 词级的文本最长长度
-MAX_WORD_TEXT_LENGTH = 44
+# 平均样本长度为15.200604
+MAX_WORD_TEXT_LENGTH = 20
 
 VOCAB_SIZE = 4000
 
@@ -191,7 +193,7 @@ def get_word_vecs(string, vecs_dict):
     return np.asarray(vecs, np.float32)
 
 
-def get_max_text_length(fname):
+def get_average_text_length(fname):
     """
     查看训练集文本的最长长度
     :param fname:
@@ -200,16 +202,18 @@ def get_max_text_length(fname):
     rf = open(fname, 'r')
     reader = csv.reader(rf)
 
-    max_len = 0
+    length_sum = 0
+    i = 0
     for row in reader:
         # 1.字符长度
         # title = re.sub(r'[^\u4e00-\u9fa5]', '', row[0]).strip()
         # 2.词长度
         title = cut.cut_and_filter(row[0].strip())
-        if len(title) > max_len:
-            max_len = len(title)
-
-    return max_len
+        print(title)
+        length_sum += len(title)
+        i += 1
+    print('total sample number:', i)
+    return length_sum/i
 
 
 # 以下代码参考自 https://github.com/gaussic/text-classification-cnn-rnn
@@ -292,7 +296,7 @@ def read_label(label_ids_path):
     return labels
 
 
-def to_id(content, vocab, mode='CHAR'):
+def to_id(content, vocab, mode='CHAR-RANDOM'):
     """
     将数据集从文字转换为固定长度的id序列表示
     """
@@ -328,5 +332,5 @@ if __name__ == '__main__':
     #     batch_x = tf.constant(batch_x)
     #     print(batch_x.shape)
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
-    # print(get_max_text_length(TRAIN_WITH_ID_PATH))
+    #print(get_average_text_length(TRAIN_WITH_ID_PATH))
     pass

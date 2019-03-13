@@ -27,6 +27,7 @@ def predict():
         saver.restore(sess, checkpoint_file)
         graph = tf.get_default_graph()
 
+        # 注意：测试时，rnn_model.py中的Config参数要和读取的模型参数一致
         config = CNNConfig()
         cnn = TextCNN(config)
         # 读取测试集及词汇表数据

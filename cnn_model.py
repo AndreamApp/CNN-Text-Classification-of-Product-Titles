@@ -11,11 +11,10 @@ class CNNConfig(object):
     # TODO: 在此修改TextCNN以及训练的参数
     """
     train_mode = 'WORD-NON-STATIC'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
-                                # 'WORD'为词级，使用word2vec预训练的词向量
-                                # 'WORD-NON-STATIC'同'WORD', 但是词向量能够继续在训练中优化
+                                    # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
     class_num = 1258        # 输出类别的数目
     embedding_dim = 128      # 词向量维度，仅'CHAR-RANDOM'模式适用，
-                            # 'WORD'及'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
+                            # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
 
     filter_num = 300        # 卷积核数目
     filter_sizes = [2, 3, 4, 5, 6]         # 卷积核尺寸

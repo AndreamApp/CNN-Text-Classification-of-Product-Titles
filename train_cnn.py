@@ -123,6 +123,7 @@ def train():
             if epoch % config.valid_per_batch == 0:
                 # 重新初始化验证集迭代器
                 sess.run(valid_init_op)
+                # 计算验证集准确率
                 valid_step(next_valid_element)
         train_summary_writer.close()
         valid_summary_writer.close()
