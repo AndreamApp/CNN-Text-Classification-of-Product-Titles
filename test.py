@@ -1,10 +1,9 @@
 import tensorflow as tf
-from cnn_model import TextCNN
-from cnn_model import CNNConfig
+from bilstm_model import BiLSTM
+from bilstm_model import BiLSTMConfig
 from data import preprocess
 import os
 import datetime
-import time
 import numpy as np
 
 
@@ -21,15 +20,15 @@ def predict():
         # 读取保存的模型
         checkpoint_dir = os.path.abspath("checkpoints\\textcnn")
         # 模型的文件名放在这，不含后缀
-        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-30001")
+        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-30002")
         # 这要加.meta后缀
-        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-30001.meta'))
+        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-30002.meta'))
         saver.restore(sess, checkpoint_file)
         graph = tf.get_default_graph()
 
         # 注意：测试时，rnn_model.py中的Config参数要和读取的模型参数一致
-        config = CNNConfig()
-        cnn = TextCNN(config)
+        config = BiLSTMConfig()
+        cnn = BiLSTM(config)
         # 读取测试集及词汇表数据
         dataset, next_element = cnn.prepare_test_data()
 

@@ -4,12 +4,14 @@ import numpy as np
 from data import preprocess
 import os
 
+import sys
 
-class RNNConfig(object):
+
+class BiLSTMConfig(object):
     """
     # TODO: 在此修改RNN以及训练的参数
     """
-    train_mode = 'WORD-NON-STATIC'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
+    train_mode = 'WORD-NON-STATIC'     # 训练模式，'CHAR-RANDOM'为字符级，样本分割为字符并使用自训练词嵌入
                                     # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
 
     class_num = 1258        # 输出类别的数目
@@ -33,7 +35,7 @@ class RNNConfig(object):
     epoch_num = 30001        # 总迭代轮次
 
 
-class TextRNN(object):
+class BiLSTM(object):
     def __init__(self, config):
         self.class_num = config.class_num
         self.layer_num = config.layer_num
@@ -113,11 +115,16 @@ class TextRNN(object):
 
         with tf.name_scope("RNN"):
             # 多层RNN网络，每层有units_num个神经元
-            # =======================================================================================
-            cells = [basic_lstm_cell() for _ in range(self.layer_num)]
-            cell = tf.nn.rnn_cell.MultiRNNCell(cells)
-            # output的形状为[batch_size, text_length, units_num]
-            output, _ = tf.nn.dynamic_rnn(cell, inputs=self.embedding_inputs, dtype=tf.float32)
+            # ======================================================================================
+            # Bidirection LSTM
+            lstm_fw_cell = basic_lstm_cell()  # forward direction cell
+            lstm_bw_cell = basic_lstm_cell()  # backward direction cell
+            # [batch_size, sequence_length, hidden_size] #creates a dynamic bidirectional recurrent neural network
+            output, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, self.embedding_inputs,
+                                                         dtype=tf.float32)
+            # concat output
+            output = tf.concat(output, axis=2)  # [batch_size,sequence_length,hidden_size*2]
+
             rnn_output = output[:, -1, :]  # 取最后一个时序作为输出结果
             # =========================================================================================
 
@@ -198,7 +205,7 @@ class TextRNN(object):
         if self.train_mode == 'CHAR-RANDOM':
             # 1.字符级
             # 读取词汇表
-            self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
+            self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.CHAR_VOCAB_PATH))
 
         elif self.train_mode == 'WORD-NON-STATIC':
             # 把预训练词向量的值读到变量中

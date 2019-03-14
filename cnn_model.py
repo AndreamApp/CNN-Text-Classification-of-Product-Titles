@@ -4,13 +4,15 @@ import numpy as np
 from data import preprocess
 from data import cut
 import os
+import sys
 
+sys.path.append(os.path.join('..', 'data'))
 
 class CNNConfig(object):
     """
     # TODO: 在此修改TextCNN以及训练的参数
     """
-    train_mode = 'WORD-NON-STATIC'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
+    train_mode = 'CHAR-RANDOM'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
                                     # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
     class_num = 1258        # 输出类别的数目
     embedding_dim = 128      # 词向量维度，仅'CHAR-RANDOM'模式适用，
@@ -29,7 +31,7 @@ class CNNConfig(object):
     valid_batch_size = 3000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 30001        # 总迭代轮次
+    epoch_num = 30002        # 总迭代轮次
 
 
 class TextCNN(object):

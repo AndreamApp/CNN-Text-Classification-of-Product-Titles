@@ -1,6 +1,6 @@
 import tensorflow as tf
-from rnn_model import RNNConfig
-from rnn_model import TextRNN
+from bilstm_model import BiLSTM
+from bilstm_model import BiLSTMConfig
 import os
 import datetime
 import time
@@ -10,15 +10,15 @@ def train():
     # Training procedure
     # ======================================================
     with tf.Session() as sess:
-        config = RNNConfig()
-        rnn = TextRNN(config)
+        config = BiLSTMConfig()
+        rnn = BiLSTM(config)
         train_dataset, valid_dataset, train_init_op, valid_init_op, next_train_element, next_valid_element = rnn.prepare_data()
         rnn.setRNN()
 
         print('Setting Tensorboard and Saver...')
         # 设置Saver和checkpoint来保存模型
         # ===================================================
-        checkpoint_dir = os.path.join(os.path.abspath("checkpoints"), "textrnn")
+        checkpoint_dir = os.path.join(os.path.abspath("checkpoints"), "bilstm")
         checkpoint_prefix = os.path.join(checkpoint_dir, rnn.train_mode)
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
@@ -27,8 +27,8 @@ def train():
 
         # 配置Tensorboard，重新训练时，请将tensorboard文件夹删除，不然图会覆盖
         # ====================================================================
-        train_tensorboard_dir = 'tensorboard/textrnn/train/' + config.train_mode
-        valid_tensorboard_dir = 'tensorboard/textrnn/valid/' + config.train_mode
+        train_tensorboard_dir = 'tensorboard/bilstm/train/' + config.train_mode
+        valid_tensorboard_dir = 'tensorboard/bilstm/valid/' + config.train_mode
         if not os.path.exists(train_tensorboard_dir):
             os.makedirs(train_tensorboard_dir)
         if not os.path.exists(valid_tensorboard_dir):

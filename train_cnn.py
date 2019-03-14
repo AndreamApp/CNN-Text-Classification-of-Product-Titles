@@ -4,7 +4,6 @@ from cnn_model import CNNConfig
 import os
 import datetime
 import time
-from data import preprocess
 
 
 def train():
