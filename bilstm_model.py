@@ -142,7 +142,7 @@ class BiLSTM(object):
         # Output layer
         with tf.name_scope('output'):
             score = tf.layers.dense(
-                rnn_output,
+                h_full,
                 units=self.class_num,
                 activation=None,
                 use_bias=True,
