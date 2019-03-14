@@ -4,9 +4,7 @@ import numpy as np
 from data import preprocess
 from data import cut
 import os
-import sys
 
-sys.path.append(os.path.join('..', 'data'))
 
 class CNNConfig(object):
     """

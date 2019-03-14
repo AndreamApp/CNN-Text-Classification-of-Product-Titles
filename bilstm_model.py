@@ -4,8 +4,6 @@ import numpy as np
 from data import preprocess
 import os
 
-import sys
-
 
 class BiLSTMConfig(object):
     """
