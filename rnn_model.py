@@ -9,7 +9,7 @@ class RNNConfig(object):
     """
     # TODO: 在此修改RNN以及训练的参数
     """
-    train_mode = 'WORD-NON-STATIC'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
+    train_mode = 'CHAR-RANDOM'     # 训练模式，'CHAR-RANDOM'为字符级，样本分割为字符并使用自训练词嵌入
                                     # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
 
     class_num = 1258        # 输出类别的数目
@@ -78,8 +78,7 @@ class TextRNN(object):
 
     def setRNN(self):
         # 输入层
-        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
-            self.input_x = tf.placeholder(tf.int32, [None, self.text_length], name="input_x")
+        self.input_x = tf.placeholder(tf.int32, [None, self.text_length], name="input_x")
 
         self.labels = tf.placeholder(tf.int32, [None], name="input_y")
         # 把数字标签转为one hot形式
@@ -90,17 +89,16 @@ class TextRNN(object):
         # 验证或测试时应为False
         self.training = tf.placeholder(tf.bool, name='training')
 
-        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
-            # 词嵌入层
-            with tf.device('/cpu:0'), tf.name_scope('embedding'):
-                if self.train_mode == 'CHAR-RANDOM':
-                    # 随机初始化的词向量
-                    W = tf.Variable(tf.random_uniform([self.vocab_size, self.embedding_dim], -1.0, 1.0))
-                elif self.train_mode == 'WORD-NON-STATIC':
-                    # 用之前读入的预训练词向量
-                    W = tf.Variable(self.embedding_W)
-                self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
-                self.embedding_inputs_expanded = tf.expand_dims(self.embedding_inputs, -1)
+        # 词嵌入层
+        with tf.device('/cpu:0'), tf.name_scope('embedding'):
+            if self.train_mode == 'CHAR-RANDOM':
+                # 随机初始化的词向量
+                W = tf.Variable(tf.random_uniform([self.vocab_size, self.embedding_dim], -1.0, 1.0))
+            elif self.train_mode == 'WORD-NON-STATIC':
+                # 用之前读入的预训练词向量
+                W = tf.Variable(self.embedding_W)
+            self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
+            self.embedding_inputs_expanded = tf.expand_dims(self.embedding_inputs, -1)
 
         with tf.name_scope("batch_norm"):
             self.embedding_inputs = tf.layers.batch_normalization(self.embedding_inputs, training=self.training)
@@ -164,14 +162,13 @@ class TextRNN(object):
         batch_x = []
         batch_y = []
         title = ""
-        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
-            # 1.id
-            for line in lines:
-                line_ = line.decode("gbk").strip().split(',')
-                title = str(line_[0:-1])    # 逗号前段为标题
-                label = str(line_[-1])      # 最后一项为标签
-                batch_x.append(preprocess.to_id(title, self.vocab, self.train_mode))
-                batch_y.append(label)
+        # 1.id
+        for line in lines:
+            line_ = line.decode("gbk").strip().split(',')
+            title = str(line_[0:-1])    # 逗号前段为标题
+            label = str(line_[-1])      # 最后一项为标签
+            batch_x.append(preprocess.to_id(title, self.vocab, self.train_mode))
+            batch_y.append(label)
 
         batch_x = np.stack(batch_x)
         return batch_x, batch_y
@@ -183,11 +180,10 @@ class TextRNN(object):
         :return:
         """
         batch_x = []
-        if self.train_mode == 'CHAR-RANDOM' or self.train_mode == 'WORD-NON-STATIC':
-            # 1.id
-            for title in titles:
-                valid_title = title.decode('gb18030').strip('\t')
-                batch_x.append(preprocess.to_id(valid_title, self.vocab, self.train_mode))
+        # 1.id
+        for title in titles:
+            valid_title = title.decode('gb18030').strip('\t')
+            batch_x.append(preprocess.to_id(valid_title, self.vocab, self.train_mode))
 
         batch_x = np.stack(batch_x)
         return batch_x

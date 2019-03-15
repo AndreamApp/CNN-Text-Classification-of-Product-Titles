@@ -108,7 +108,7 @@ def train():
                     # 把结果写入Tensorboard中
                     valid_summary_writer.add_summary(valid_summary, step)
                     break
-
+        print('Start training TextCNN, training mode='+cnn.train_mode)
         sess.run(tf.global_variables_initializer())
 
         # 初始化训练集、验证集迭代器

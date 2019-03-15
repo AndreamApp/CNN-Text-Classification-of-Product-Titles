@@ -165,7 +165,6 @@ def load_vecs(fname=SGNS_WORD_NGRAM_PATH):
 def add_word(word, vecs_dict):
         # 如果出现预训练词向量中没有的词，随机生成词向量
         # Referring to https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
-        # TODO: Uncertain method to generate random vector
         vec = np.random.uniform(-0.25, 0.25, [300])
         vecs_dict[word] = vec
         return vec
@@ -306,7 +305,7 @@ def to_id(content, vocab, mode='CHAR-RANDOM'):
     max_length = 0
     if mode == 'CHAR-RANDOM':
         max_length = MAX_CHAR_TEXT_LENGTH
-    elif mode == 'WORD-NON-STATIC':
+    elif mode == 'WORD-NON-STATIC' or mode == 'MULTI':
         max_length = MAX_WORD_TEXT_LENGTH
 
     if len(title_id) < max_length:
