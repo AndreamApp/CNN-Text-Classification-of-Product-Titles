@@ -17,12 +17,13 @@ def predict():
     # Test procedure
     # ======================================================
     with tf.Session() as sess:
-        # 读取保存的模型
-        checkpoint_dir = os.path.abspath("checkpoints\\textcnn")
+        # TODO: 读取不同模型，修改此处参数
+        # 要读取的模型路径
+        checkpoint_dir = os.path.abspath("checkpoints\\textrnn")
         # 模型的文件名放在这，不含后缀
-        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-30002")
+        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-30001")
         # 这要加.meta后缀
-        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-30002.meta'))
+        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-30001.meta'))
         saver.restore(sess, checkpoint_file)
         graph = tf.get_default_graph()
 

@@ -30,7 +30,7 @@ class CNNConfig(object):
     valid_batch_size = 3000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 30002        # 总迭代轮次
+    epoch_num = 50001        # 总迭代轮次
 
 
 class TextCNN(object):
@@ -199,8 +199,8 @@ class TextCNN(object):
 
         for line in lines:
             line_ = line.decode("gbk").strip().split(',')
-            title = str(line_[0:-1])    # 逗号前段为标题
-            label = str(line_[-1])      # 最后一项为标签
+            title = ''.join(line_[0:-1])    # 逗号前段为标题
+            label = ''.join(line_[-1])      # 最后一项为标签
             batch_x.append(preprocess.to_id(title, self.vocab, self.train_mode))
             batch_y.append(label)
 

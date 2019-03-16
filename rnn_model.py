@@ -165,8 +165,8 @@ class TextRNN(object):
         # 1.id
         for line in lines:
             line_ = line.decode("gbk").strip().split(',')
-            title = str(line_[0:-1])    # 逗号前段为标题
-            label = str(line_[-1])      # 最后一项为标签
+            title = ''.join(line_[0:-1])    # 逗号前段为标题
+            label = ''.join(line_[-1])      # 最后一项为标签
             batch_x.append(preprocess.to_id(title, self.vocab, self.train_mode))
             batch_y.append(label)
 

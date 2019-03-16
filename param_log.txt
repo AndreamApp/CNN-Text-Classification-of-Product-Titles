@@ -42,8 +42,31 @@ valid 94.87%
     valid_batch_size = 3000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 30001        # 总迭代轮次
-valid 92.23%
+    epoch_num = 50001        # 总迭代轮次
+valid 96.322%
+
+    train_mode = 'MULTI'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
+                                    # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
+                                    # 'MULTI'
+    class_num = 1258        # 输出类别的数目
+    embedding_dim = 128      # 词向量维度，仅'CHAR-RANDOM'模式适用，
+                            # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
+
+    filter_num = 300        # 卷积核数目
+    filter_sizes = [2, 3, 4, 5, 6]         # 卷积核尺寸
+    vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
+
+    dense_unit_num = 512        # 全连接层神经元
+
+    dropout_keep_prob = 0.5     # dropout保留比例（弃用）
+    learning_rate = 1e-3    # 学习率
+
+    train_batch_size = 128         # 每批训练大小
+    valid_batch_size = 3000       # 每批验证大小
+    test_batch_size = 5000        # 每批测试大小
+    valid_per_batch = 500           # 每多少批进行一次验证
+    epoch_num = 50001        # 总迭代轮次
+96.0260%
 
     train_mode = 'WORD-NON-STATIC'     # 训练模式，'CHAR'为字符级，样本分割为字符并使用自训练词嵌入
                                     # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
@@ -92,5 +115,5 @@ BiLSTM 92.82%
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
     epoch_num = 30001        # 总迭代轮次
-
+RNN
 BiLSTM 94.69%

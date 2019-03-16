@@ -64,7 +64,7 @@ def assign_id():
     # ----------------------------------------------------------------------
 
 
-def recreate_data_with_id_label():
+def recreate_data_with_id_label(train_path, train_with_id_path):
     # 重新生成标签为id的训练集
     ids = {}
     label = ''
@@ -73,7 +73,7 @@ def recreate_data_with_id_label():
 
     with open(LABEL_ID_PATH, 'r', encoding='utf-8') as f:
         print('Reading tag id file...')
-        while (True):
+        while True:
             line = f.readline()
             label = ''
             if line == '':
@@ -88,22 +88,26 @@ def recreate_data_with_id_label():
 
             ids[label] = ID
 
-    writefile = open(TRAIN_WITH_ID_PATH, 'w', newline='')
-    writer = csv.writer(writefile)
-    readfile = open(TRAIN_PATH, 'r')
-    reader = csv.reader(readfile)
-    next(reader)
+    wf = open(train_with_id_path, 'w', newline='', encoding='gbk')
+    rf = open(train_path, 'r', encoding='gbk', errors='ignore')
     print('Writing traing file with id label...')
 
-    for row in reader:
-        title = row[0]
-        tag = row[1]
+    while True:
+        line = rf.readline()
+        if line == '':
+            break
+        line = line.strip().split('\t')
+        title = ''.join(line[0:-1])
+        tag = ''.join(line[-1])
         try:
-            writer.writerow([title, ids[tag]])
+            wf.write(','.join([title, ids[tag]]) + '\n')
         except KeyError as e:
             print('KeyError occur!', title, tag)
-    writefile.close()
-    readfile.close()
+        except IndexError as e:
+            print('IndexError occur!', line)
+
+    wf.close()
+    rf.close()
 
 
 # def recreate_data_with_id_title():
@@ -332,4 +336,7 @@ if __name__ == '__main__':
     #     print(batch_x.shape)
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
     #print(get_average_text_length(TRAIN_WITH_ID_PATH))
-    pass
+    #recreate_data_with_id_label('holdout37\\3.tsv', 'holdout37\\train_with_id_3.csv')
+    #recreate_data_with_id_label('holdout37\\7.tsv', 'holdout37\\train_with_id_7.csv')
+    print(str(['1', '2']))
+
