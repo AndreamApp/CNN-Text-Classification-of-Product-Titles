@@ -13,14 +13,20 @@ SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
 TRAIN_WITH_ID_PATH = 'train_with_id.csv'
+TRAIN_WITH_ID_3_PATH = 'holdout37\\train_with_id_3.csv'
+TRAIN_WITH_ID_7_PATH = 'holdout37\\train_with_id_7.csv'
+TRAIN_WITH_ID_2_PATH = 'holdout28\\train_with_id_2.csv'
+TRAIN_WITH_ID_8_PATH = 'holdout28\\train_with_id_8.csv'
 TEST_PATH = 'test.tsv'
 CHAR_VOCAB_PATH = 'char_vocab.txt'
 WORD_VOCAB_PATH = 'word_vocab.txt'
 TEMP_PATH = 'temp.csv'
 
 TOTAL_TRAIN_SIZE = 500000
-TRAIN_SIZE = int(TOTAL_TRAIN_SIZE * 0.7)
-VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
+VALID_SIZE = 150000
+TRAIN_SIZE = 350000
+VALID_SIZE_3 = 151374
+TRAIN_SIZE_7 = 348626
 
 TOTAL_TEST_SIZE = 4500000
 
@@ -88,24 +94,26 @@ def recreate_data_with_id_label(train_path, train_with_id_path):
 
             ids[label] = ID
 
-    wf = open(train_with_id_path, 'w', newline='', encoding='gbk')
-    rf = open(train_path, 'r', encoding='gbk', errors='ignore')
-    print('Writing traing file with id label...')
-
+    wf = open(train_with_id_path, 'w', newline='')
+    writefile = csv.writer(wf)
+    rf = open(train_path, 'r', errors='ignore')
+    print('Writing trainng file with id label...')
+    i = 0
     while True:
         line = rf.readline()
         if line == '':
             break
+        i += 1
         line = line.strip().split('\t')
         title = ''.join(line[0:-1])
         tag = ''.join(line[-1])
         try:
-            wf.write(','.join([title, ids[tag]]) + '\n')
+            writefile.writerow([title, ids[tag]])
         except KeyError as e:
             print('KeyError occur!', title, tag)
         except IndexError as e:
             print('IndexError occur!', line)
-
+    print('Total written line:', i)
     wf.close()
     rf.close()
 
@@ -336,7 +344,15 @@ if __name__ == '__main__':
     #     print(batch_x.shape)
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
     #print(get_average_text_length(TRAIN_WITH_ID_PATH))
-    #recreate_data_with_id_label('holdout37\\3.tsv', 'holdout37\\train_with_id_3.csv')
-    #recreate_data_with_id_label('holdout37\\7.tsv', 'holdout37\\train_with_id_7.csv')
-    print(str(['1', '2']))
+    # recreate_data_with_id_label('holdout37\\3.tsv', 'holdout37\\train_with_id_3.csv')
+    # recreate_data_with_id_label('holdout37\\7.tsv', 'holdout37\\train_with_id_7.csv')
+    str = '你好啊,123'.encode('gbk')
+    str_ = str.decode('gbk').strip().split(',')
+    print(str)
+    print(str_)
+
+
+
+
+
 
