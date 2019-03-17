@@ -13,10 +13,10 @@ SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
 TRAIN_WITH_ID_PATH = 'train_with_id.csv'
-TRAIN_WITH_ID_3_PATH = 'holdout37\\train_with_id_3.csv'
-TRAIN_WITH_ID_7_PATH = 'holdout37\\train_with_id_7.csv'
-TRAIN_WITH_ID_2_PATH = 'holdout28\\train_with_id_2.csv'
-TRAIN_WITH_ID_8_PATH = 'holdout28\\train_with_id_8.csv'
+TRAIN_WITH_ID_3_PATH = 'holdout37/train_with_id_3.csv'
+TRAIN_WITH_ID_7_PATH = 'holdout37/train_with_id_7.csv'
+TRAIN_WITH_ID_2_PATH = 'holdout28/train_with_id_2.csv'
+TRAIN_WITH_ID_8_PATH = 'holdout28/train_with_id_8.csv'
 TEST_PATH = 'test.tsv'
 CHAR_VOCAB_PATH = 'char_vocab.txt'
 WORD_VOCAB_PATH = 'word_vocab.txt'
@@ -344,8 +344,8 @@ if __name__ == '__main__':
     #     print(batch_x.shape)
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
     #print(get_average_text_length(TRAIN_WITH_ID_PATH))
-    # recreate_data_with_id_label('holdout37\\3.tsv', 'holdout37\\train_with_id_3.csv')
-    # recreate_data_with_id_label('holdout37\\7.tsv', 'holdout37\\train_with_id_7.csv')
+    # recreate_data_with_id_label('holdout37/3.tsv', 'holdout37/train_with_id_3.csv')
+    # recreate_data_with_id_label('holdout37/7.tsv', 'holdout37/train_with_id_7.csv')
     str = '你好啊,123'.encode('gbk')
     str_ = str.decode('gbk').strip().split(',')
     print(str)

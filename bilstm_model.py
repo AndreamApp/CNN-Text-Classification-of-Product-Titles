@@ -220,10 +220,10 @@ class BiLSTM(object):
         # valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
         # 剩下的给训练集
         # train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
-        valid_dataset = TextLineDataset(os.path.join('.\data', preprocess.TRAIN_WITH_ID_3_PATH))
+        valid_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_3_PATH))
         valid_dataset = valid_dataset.shuffle(preprocess.VALID_SIZE_3).batch(self.valid_batch_size)
 
-        train_dataset = TextLineDataset(os.path.join('.\data', preprocess.TRAIN_WITH_ID_7_PATH))
+        train_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_7_PATH))
         train_dataset = train_dataset.shuffle(preprocess.TRAIN_SIZE_7).batch(self.train_batch_size).repeat()
         # Create a reinitializable iterator
         train_iterator = train_dataset.make_initializable_iterator()
