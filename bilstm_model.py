@@ -29,8 +29,7 @@ class BiLSTMConfig(object):
     valid_batch_size = 5000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 30001        # 总迭代轮次
-
+    epoch_num = 20*int(preprocess.TRAIN_SIZE_7/train_batch_size)        # 总迭代轮次
 
 class BiLSTM(object):
     def __init__(self, config):
