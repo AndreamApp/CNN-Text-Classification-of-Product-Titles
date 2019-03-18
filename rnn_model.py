@@ -205,23 +205,19 @@ class TextRNN(object):
                     preprocess.add_word(word, self.vecs_dict)
                 self.embedding_W[self.vocab[word]] = self.vecs_dict[word]
 
-        # CsvDataset类加载csv文件
-        # dataset = CsvDataset(os.path.join('./data',preprocess.TRAIN_WITH_ID_PATH),
-        #                      [tf.string, tf.int32]).shuffle(preprocess.TOTAL_TRAIN_SIZE)
-        # dataset = TextLineDataset(os.path.join('.\data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
+        dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
 
         # 分割数据集
         # TODO: 使用k折交叉验证
         # 取前VALID_SIZE个样本给验证集
-        # valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
+        valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
         # 剩下的给训练集
-        # train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
+        train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
 
-        valid_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_3_PATH))
-        valid_dataset = valid_dataset.shuffle(preprocess.VALID_SIZE_3).batch(self.valid_batch_size)
-
-        train_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_7_PATH))
-        train_dataset = train_dataset.shuffle(preprocess.TRAIN_SIZE_7).batch(self.train_batch_size).repeat()
+        # valid_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_3_PATH))
+        # valid_dataset = valid_dataset.shuffle(preprocess.VALID_SIZE_3).batch(self.valid_batch_size)
+        # train_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_7_PATH))
+        # train_dataset = train_dataset.shuffle(preprocess.TRAIN_SIZE_7).batch(self.train_batch_size).repeat()
 
         # Create a reinitializable iterator
         train_iterator = train_dataset.make_initializable_iterator()

@@ -22,7 +22,7 @@ class CNNConfig(object):
     filter_sizes = [2, 3, 4, 5, 6]         # 卷积核尺寸
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
 
-    dense_unit_num = 128        # 全连接层神经元
+    dense_unit_num = 512        # 全连接层神经元
 
     dropout_keep_prob = 0.5     # dropout保留比例
     learning_rate = 1e-3    # 学习率
@@ -243,19 +243,18 @@ class TextCNN(object):
                     preprocess.add_word(word, self.vecs_dict)
                 self.embedding_W[self.vocab[word]] = self.vecs_dict[word]
 
-        # dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
+        dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
         # 分割数据集
         # TODO: 使用k折交叉验证
-        # # 取前VALID_SIZE个样本给验证集
-        # valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
-        # # 剩下的给训练集
-        # train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
+        # 取前VALID_SIZE个样本给验证集
+        valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
+        # 剩下的给训练集
+        train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
 
-        valid_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_3_PATH))
-        valid_dataset = valid_dataset.shuffle(preprocess.VALID_SIZE_3).batch(self.valid_batch_size)
-
-        train_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_7_PATH))
-        train_dataset = train_dataset.shuffle(preprocess.TRAIN_SIZE_7).batch(self.train_batch_size).repeat()
+        # valid_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_3_PATH))
+        # valid_dataset = valid_dataset.shuffle(preprocess.VALID_SIZE_3).batch(self.valid_batch_size)
+        # train_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_7_PATH))
+        # train_dataset = train_dataset.shuffle(preprocess.TRAIN_SIZE_7).batch(self.train_batch_size).repeat()
 
         # Create a reinitializable iterator
         train_iterator = train_dataset.make_initializable_iterator()

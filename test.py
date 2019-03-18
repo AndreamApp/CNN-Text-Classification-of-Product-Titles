@@ -17,7 +17,9 @@ def predict():
     """
     # Test procedure
     # ======================================================
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
         # TODO: 读取不同模型，修改此处参数
         # 要读取的模型路径
         checkpoint_dir = os.path.abspath("checkpoints\\textrnn")

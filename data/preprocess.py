@@ -13,6 +13,7 @@ SGNS_WORD_NGRAM_PATH = 'sgns.target.word-ngram.1-2.dynwin5.thr10.neg5.dim300.ite
 SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
+TRAIN_WITH_ID_PATH = 'train_with_id.csv'
 TRAIN_WITH_ID_3_PATH = 'holdout37/train_with_id_3.csv'
 TRAIN_WITH_ID_7_PATH = 'holdout37/train_with_id_7.csv'
 TRAIN_WITH_ID_2_PATH = 'holdout28/train_with_id_2.csv'
@@ -23,6 +24,8 @@ WORD_VOCAB_PATH = 'word_vocab.txt'
 TEMP_PATH = 'temp.csv'
 
 TOTAL_TRAIN_SIZE = 500000
+TRAIN_SIZE = int(TOTAL_TRAIN_SIZE * 0.7)
+VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
 VALID_SIZE_3 = 151374
 TRAIN_SIZE_7 = 348626
 
