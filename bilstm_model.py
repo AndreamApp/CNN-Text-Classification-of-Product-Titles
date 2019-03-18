@@ -1,3 +1,4 @@
+# coding=utf-8
 import tensorflow as tf
 from tensorflow.data import TextLineDataset
 import numpy as np
@@ -22,14 +23,15 @@ class BiLSTMConfig(object):
 
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
 
-    dropout_keep_prob = 0.7     # dropout保留比例
+    dropout_keep_prob = 0.5     # dropout保留比例
     learning_rate = 1e-3    # 学习率
 
     train_batch_size = 128         # 每批训练大小
     valid_batch_size = 5000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
-    valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 20*int(preprocess.TRAIN_SIZE_7/train_batch_size)        # 总迭代轮次
+    valid_per_batch = 1000           # 每多少批进行一次验证
+    epoch_num = 18*int(preprocess.TRAIN_SIZE_7/train_batch_size)        # 总迭代轮次
+
 
 class BiLSTM(object):
     def __init__(self, config):
@@ -95,16 +97,13 @@ class BiLSTM(object):
                 # 用之前读入的预训练词向量
                 W = tf.Variable(self.embedding_W)
             self.embedding_inputs = tf.nn.embedding_lookup(W, self.input_x)
-            self.embedding_inputs_expanded = tf.expand_dims(self.embedding_inputs, -1)
 
         with tf.name_scope("batch_norm"):
             self.embedding_inputs = tf.layers.batch_normalization(self.embedding_inputs, training=self.training)
-        print(self.embedding_inputs.shape)
 
         def basic_lstm_cell():
             bcell = tf.nn.rnn_cell.LSTMCell(self.unit_num)
-            return bcell
-            #return tf.nn.rnn_cell.DropoutWrapper(bcell, output_keep_prob=self.dropout_keep_prob)
+            return tf.nn.rnn_cell.DropoutWrapper(bcell, output_keep_prob=self.dropout_keep_prob)
 
         with tf.name_scope("RNN"):
             # 双向LSTM网络，每层有units_num个神经元
@@ -125,12 +124,13 @@ class BiLSTM(object):
             # 全连接层
             # ======================================================================================
             h_full = tf.layers.dense(inputs=rnn_output,
-                                   units=self.dense_unit_num,
-                                   activation=tf.nn.relu,
-                                   use_bias=True,
-                                   kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
-                                   bias_initializer=tf.constant_initializer(0.1)
-                                   )
+                                     units=self.dense_unit_num,
+                                     use_bias=True,
+                                     kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
+                                     bias_initializer=tf.constant_initializer(0.1)
+                                     )
+            h_full = tf.layers.dropout(h_full, rate=self.dropout_keep_prob)
+            h_full = tf.nn.relu(h_full)
             # ==========================================================================================
 
 

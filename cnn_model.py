@@ -1,3 +1,4 @@
+# coding=utf-8
 import tensorflow as tf
 from tensorflow.data import TextLineDataset
 import numpy as np
@@ -17,20 +18,20 @@ class CNNConfig(object):
     embedding_dim = 128      # 词向量维度，仅'CHAR-RANDOM'模式适用，
                             # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
 
-    filter_num = 300        # 卷积核数目
+    filter_num = 200        # 卷积核数目
     filter_sizes = [2, 3, 4, 5, 6]         # 卷积核尺寸
     vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
 
-    dense_unit_num = 512        # 全连接层神经元
+    dense_unit_num = 128        # 全连接层神经元
 
-    dropout_keep_prob = 0.5     # dropout保留比例（弃用）
+    dropout_keep_prob = 0.5     # dropout保留比例
     learning_rate = 1e-3    # 学习率
 
     train_batch_size = 128         # 每批训练大小
     valid_batch_size = 3000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
-    valid_per_batch = 500           # 每多少批进行一次验证
-    epoch_num = 20*int(preprocess.TRAIN_SIZE_7/train_batch_size)        # 总迭代轮次
+    valid_per_batch = 1000           # 每多少批进行一次验证
+    epoch_num = 18*int(preprocess.TRAIN_SIZE_7/train_batch_size)        # 总迭代轮次
 
 
 class TextCNN(object):
@@ -159,11 +160,12 @@ class TextCNN(object):
             h_full = tf.layers.dense(
                 h_pool_flat,
                 units=self.dense_unit_num,
-                activation=tf.nn.relu,
                 use_bias=True,
                 kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
                 bias_initializer=tf.constant_initializer(0.1)
             )
+            h_full = tf.layers.dropout(h_full, rate=self.dropout_keep_prob)
+            h_full = tf.nn.relu(h_full)
         # =========================================================================
 
         # Output layer
@@ -241,7 +243,7 @@ class TextCNN(object):
                     preprocess.add_word(word, self.vecs_dict)
                 self.embedding_W[self.vocab[word]] = self.vecs_dict[word]
 
-        dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
+        # dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
         # 分割数据集
         # TODO: 使用k折交叉验证
         # # 取前VALID_SIZE个样本给验证集

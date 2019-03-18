@@ -1,3 +1,4 @@
+# coding=utf-8
 import tensorflow as tf
 from bilstm_model import BiLSTM
 from bilstm_model import BiLSTMConfig

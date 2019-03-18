@@ -1,3 +1,4 @@
+# coding=utf-8
 import tensorflow as tf
 from bilstm_model import BiLSTM
 from bilstm_model import BiLSTMConfig
@@ -9,7 +10,10 @@ import time
 def train():
     # Training procedure
     # ======================================================
-    with tf.Session() as sess:
+    # 设定最小显存使用量
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
         config = BiLSTMConfig()
         bilstm = BiLSTM(config)
         train_dataset, valid_dataset, train_init_op, valid_init_op, next_train_element, next_valid_element = bilstm.prepare_data()
@@ -115,7 +119,7 @@ def train():
         sess.run(train_init_op)
 
         # Training loop
-        for epoch in range(config.epoch_num):
+        for epoch in range(config.epoch_num + 1):
             lines = sess.run(next_train_element)
             batch_x, batch_y = bilstm.convert_input(lines)
             train_step(batch_x, batch_y, config.dropout_keep_prob)
