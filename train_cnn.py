@@ -7,7 +7,6 @@ import os
 import datetime
 import time
 
-
 def train():
     # Training procedure
     # ======================================================
@@ -17,7 +16,7 @@ def train():
     with tf.Session(config=config) as sess:
         config = CNNConfig()
         cnn = TextCNN(config)
-        train_dataset, valid_dataset, train_init_op, valid_init_op, next_train_element, next_valid_element = cnn.prepare_data()
+        cnn.prepare_data()
         cnn.setCNN()
 
         print('Setting Tensorboard and Saver...')
@@ -38,6 +37,9 @@ def train():
             os.makedirs(train_tensorboard_dir)
         if not os.path.exists(valid_tensorboard_dir):
             os.makedirs(valid_tensorboard_dir)
+
+        # 训练结果记录
+        log_file = open(valid_tensorboard_dir+'/log.txt', mode='w')
 
         merged_summary = tf.summary.merge([tf.summary.scalar('loss', cnn.loss),
                                             tf.summary.scalar('accuracy', cnn.accuracy)])
@@ -71,8 +73,8 @@ def train():
                 cnn.labels: batch_y,
                 cnn.dropout_keep_prob: 1.0,
                 cnn.training: False})
-            time = datetime.datetime.now().isoformat()
-            print('%s: step: %d, loss: %f, accuracy: %f' % (time, step, loss, accuracy))
+            t = datetime.datetime.now().strftime('%m-%d %H:%M')
+            print('%s: epoch: %d, step: %d, loss: %f, accuracy: %f' % (t, epoch, step, loss, accuracy))
             # 把结果写入Tensorboard中
             train_summary_writer.add_summary(summery, step)
 
@@ -108,30 +110,37 @@ def train():
                     step, valid_loss, valid_accuracy, valid_summary = sess.run([global_step, cnn.valid_loss,
                                                                                 cnn.valid_accuracy,
                                                                                 merged_valid_summary], feed_dict)
-                    print('Validation loss: %f, accuracy: %f' % (valid_loss, valid_accuracy))
+                    t = datetime.datetime.now().strftime('%m-%d %H:%M')
+                    log = '%s: epoch %d, validation loss: %f, accuracy: %f' % (t, epoch, valid_loss, valid_accuracy)
+                    print(log)
+                    log_file.write(log+'\n')
                     time.sleep(3)
                     # 把结果写入Tensorboard中
                     valid_summary_writer.add_summary(valid_summary, step)
-                    break
+                    return
+
         print('Start training TextCNN, training mode='+cnn.train_mode)
         sess.run(tf.global_variables_initializer())
 
-        # 初始化训练集、验证集迭代器
-        sess.run(train_init_op)
-
         # Training loop
-        for epoch in range(config.epoch_num + 1):
-            lines = sess.run(next_train_element)
-            batch_x, batch_y = cnn.convert_input(lines)
-            train_step(batch_x, batch_y, config.dropout_keep_prob)
-            if epoch % config.valid_per_batch == 0:
-                # 重新初始化验证集迭代器
-                sess.run(valid_init_op)
-                # 计算验证集准确率
-                valid_step(next_valid_element)
+        for epoch in range(config.epoch_num):
+            train_init_op, valid_init_op, next_train_element, next_valid_element = cnn.shuffle_datset()
+            sess.run(train_init_op)
+            while True:
+                try:
+                    lines = sess.run(next_train_element)
+                    batch_x, batch_y = cnn.convert_input(lines)
+                    train_step(batch_x, batch_y, config.dropout_keep_prob)
+                except tf.errors.OutOfRangeError:
+                    # 初始化验证集迭代器
+                    sess.run(valid_init_op)
+                    # 计算验证集准确率
+                    valid_step(next_valid_element)
+                    break
+
         train_summary_writer.close()
         valid_summary_writer.close()
-
+        log_file.close()
         # 训练完成后保存参数
         path = saver.save(sess, checkpoint_prefix, global_step=global_step)
         print("Saved model checkpoint to {}\n".format(path))
