@@ -1,4 +1,5 @@
 # coding=utf-8
+
 import tensorflow as tf
 from bilstm_model import BiLSTM
 from bilstm_model import BiLSTMConfig
@@ -16,7 +17,7 @@ def train():
     with tf.Session(config=config) as sess:
         config = BiLSTMConfig()
         bilstm = BiLSTM(config)
-        train_dataset, valid_dataset, train_init_op, valid_init_op, next_train_element, next_valid_element = bilstm.prepare_data()
+        bilstm.prepare_data()
         bilstm.setBiLSTM()
 
         print('Setting Tensorboard and Saver...')
@@ -37,6 +38,9 @@ def train():
             os.makedirs(train_tensorboard_dir)
         if not os.path.exists(valid_tensorboard_dir):
             os.makedirs(valid_tensorboard_dir)
+
+        # 训练结果记录
+        log_file = open(valid_tensorboard_dir+'/log.txt', mode='w')
 
         merged_summary = tf.summary.merge([tf.summary.scalar('loss', bilstm.loss),
                                             tf.summary.scalar('accuracy', bilstm.accuracy)])
@@ -70,8 +74,8 @@ def train():
                 bilstm.labels: batch_y,
                 bilstm.dropout_keep_prob: 1.0,
                 bilstm.training: False})
-            time = datetime.datetime.now().isoformat()
-            print('%s: step: %d, loss: %f, accuracy: %f' % (time, step, loss, accuracy))
+            t = datetime.datetime.now().strftime('%m-%d %H:%M')
+            print('%s: epoch: %d, step: %d, loss: %f, accuracy: %f' % (t, epoch,step, loss, accuracy))
             # 把结果写入Tensorboard中
             train_summary_writer.add_summary(summery, step)
 
@@ -92,45 +96,52 @@ def train():
                         bilstm.training: False
                     }
                     loss, accuracy = sess.run([bilstm.loss, bilstm.accuracy], feed_dict)
-                    # cnn.valid_loss += loss
+                    # bilstm.valid_loss += loss
                     sess.run(bilstm.valid_loss.assign_add(loss))
-                    # cnn.valid_accuracy += accuracy
+                    # bilstm.valid_accuracy += accuracy
                     sess.run(bilstm.valid_accuracy.assign_add(accuracy))
                     i += 1
 
                 except tf.errors.OutOfRangeError:
                     # 遍历完验证集，然后对loss和accuracy求平均值
-                    # cnn.valid_loss /= i
+                    # bilstm.valid_loss /= i
                     sess.run(bilstm.valid_loss.assign(tf.math.divide(bilstm.valid_loss, i)))
-                    # cnn.valid_accuracy /= i
+                    # bilstm.valid_accuracy /= i
                     sess.run(bilstm.valid_accuracy.assign(tf.math.divide(bilstm.valid_accuracy, i)))
                     step, valid_loss, valid_accuracy, valid_summary = sess.run([global_step, bilstm.valid_loss,
                                                                                 bilstm.valid_accuracy,
                                                                                 merged_valid_summary], feed_dict)
-                    print('Validation loss: %f, accuracy: %f' % (valid_loss, valid_accuracy))
+                    t = datetime.datetime.now().strftime('%m-%d %H:%M')
+                    log = '%s: epoch %d, validation loss: %f, accuracy: %f' % (t, epoch, valid_loss, valid_accuracy)
+                    print(log)
+                    log_file.write(log+'\n')
                     time.sleep(3)
                     # 把结果写入Tensorboard中
                     valid_summary_writer.add_summary(valid_summary, step)
-                    break
-        print('Start training BiLSTM, training mode='+bilstm.train_mode)
+                    return
+
+        print('Start training TextBiLSTM, training mode='+bilstm.train_mode)
         sess.run(tf.global_variables_initializer())
 
-        # 初始化训练集、验证集迭代器
-        sess.run(train_init_op)
-
         # Training loop
-        for epoch in range(config.epoch_num + 1):
-            lines = sess.run(next_train_element)
-            batch_x, batch_y = bilstm.convert_input(lines)
-            train_step(batch_x, batch_y, config.dropout_keep_prob)
-            if epoch % config.valid_per_batch == 0:
-                # 重新初始化验证集迭代器
-                sess.run(valid_init_op)
-                # 计算验证集准确率
-                valid_step(next_valid_element)
+        for epoch in range(config.epoch_num):
+            train_init_op, valid_init_op, next_train_element, next_valid_element = bilstm.shuffle_datset()
+            sess.run(train_init_op)
+            while True:
+                try:
+                    lines = sess.run(next_train_element)
+                    batch_x, batch_y = bilstm.convert_input(lines)
+                    train_step(batch_x, batch_y, config.dropout_keep_prob)
+                except tf.errors.OutOfRangeError:
+                    # 初始化验证集迭代器
+                    sess.run(valid_init_op)
+                    # 计算验证集准确率
+                    valid_step(next_valid_element)
+                    break
+
         train_summary_writer.close()
         valid_summary_writer.close()
-
+        log_file.close()
         # 训练完成后保存参数
         path = saver.save(sess, checkpoint_prefix, global_step=global_step)
         print("Saved model checkpoint to {}\n".format(path))

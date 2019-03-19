@@ -14,10 +14,10 @@ SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'
 LABEL_ID_PATH = 'level3_id.txt'
 TRAIN_PATH = 'train.csv'
 TRAIN_WITH_ID_PATH = 'train_with_id.csv'
-TRAIN_WITH_ID_3_PATH = 'holdout37/train_with_id_3.csv'
-TRAIN_WITH_ID_7_PATH = 'holdout37/train_with_id_7.csv'
-TRAIN_WITH_ID_2_PATH = 'holdout28/train_with_id_2.csv'
-TRAIN_WITH_ID_8_PATH = 'holdout28/train_with_id_8.csv'
+# TRAIN_WITH_ID_3_PATH = 'holdout37/train_with_id_3.csv'
+# TRAIN_WITH_ID_7_PATH = 'holdout37/train_with_id_7.csv'
+# TRAIN_WITH_ID_2_PATH = 'holdout28/train_with_id_2.csv'
+# TRAIN_WITH_ID_8_PATH = 'holdout28/train_with_id_8.csv'
 TEST_PATH = 'test.tsv'
 CHAR_VOCAB_PATH = 'char_vocab.txt'
 WORD_VOCAB_PATH = 'word_vocab.txt'
@@ -26,8 +26,8 @@ TEMP_PATH = 'temp.csv'
 TOTAL_TRAIN_SIZE = 500000
 TRAIN_SIZE = int(TOTAL_TRAIN_SIZE * 0.7)
 VALID_SIZE = int(TOTAL_TRAIN_SIZE * 0.3)
-VALID_SIZE_3 = 151374
-TRAIN_SIZE_7 = 348626
+# VALID_SIZE_3 = 151374
+# TRAIN_SIZE_7 = 348626
 
 TOTAL_TEST_SIZE = 4500000
 
@@ -182,7 +182,7 @@ def add_word(word, vecs_dict):
         vecs_dict[word] = vec
         return vec
 
-
+'''
 def get_word_vecs(string, vecs_dict):
     # 将一个字符串转换为n*300的词向量列表
 
@@ -203,7 +203,7 @@ def get_word_vecs(string, vecs_dict):
             add_word(word, vecs_dict)
         vecs.append(vecs_dict[word])
     return np.asarray(vecs, np.float32)
-
+'''
 
 def get_average_text_length(fname):
     """
@@ -344,13 +344,11 @@ if __name__ == '__main__':
     #     batch_x = tf.constant(batch_x)
     #     print(batch_x.shape)
     # print(to_id('ansevi(安视威) IC卡/M1卡/门禁卡/考勤卡/异形卡 蓝色IC方牌', vocab, 'CHAR'))
+    print(cut.cut_and_filter('猫粮成猫幼猫粮鱼肉味猫咪主粮流浪老年猫食10kg20斤5猫主粮大包'))
     #print(get_average_text_length(TRAIN_WITH_ID_PATH))
     # recreate_data_with_id_label('holdout37/3.tsv', 'holdout37/train_with_id_3.csv')
     # recreate_data_with_id_label('holdout37/7.tsv', 'holdout37/train_with_id_7.csv')
-    str = '你好啊,123'.encode('gbk')
-    str_ = str.decode('gbk').strip().split(',')
-    print(str)
-    print(str_)
+
 
 
 

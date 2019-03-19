@@ -31,7 +31,8 @@ class RNNConfig(object):
     valid_batch_size = 5000       # 每批验证大小
     test_batch_size = 5000        # 每批测试大小
     valid_per_batch = 1000           # 每多少批进行一次验证
-    epoch_num = 18*int(preprocess.TRAIN_SIZE_7/train_batch_size)        # 总迭代轮次
+    # epoch_num = 18*int(preprocess.TRAIN_SIZE/train_batch_size)        # 总迭代轮次
+    epoch_num = 20        # 总迭代轮次
 
 
 class TextRNN(object):
@@ -71,6 +72,7 @@ class TextRNN(object):
         self.vocab = None
         self.vecs_dict = {}
         self.embedding_W = None
+        self.dataset = None
 
         # 此变量用来计算验证集的平均损失
         self.valid_loss = tf.Variable(tf.constant(0.0, dtype=tf.float32))
@@ -194,7 +196,7 @@ class TextRNN(object):
             # 读取词汇表
             self.vocab = preprocess.read_vocab(os.path.join('data',preprocess.CHAR_VOCAB_PATH))
 
-        elif self.train_mode == 'WORD-NON-STATIC':
+        elif self.train_mode == 'WORD-NON-STATIC' or self.train_mode == 'MULTI':
             # 把预训练词向量的值读到变量中
             self.vocab = preprocess.read_vocab(os.path.join('data', preprocess.WORD_VOCAB_PATH))
             self.vecs_dict = preprocess.load_vecs(os.path.join('data', preprocess.SGNS_WORD_PATH))
@@ -205,19 +207,23 @@ class TextRNN(object):
                     preprocess.add_word(word, self.vecs_dict)
                 self.embedding_W[self.vocab[word]] = self.vecs_dict[word]
 
-        dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).shuffle(preprocess.TOTAL_TRAIN_SIZE)
+        self.dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH))
+
+        return
+        # =============================================================
+        # Date preparation ends.
+
+    def shuffle_datset(self):
+        # 打乱数据集
+        # ==========================================================
+        print('Shuffling dataset...')
+        self.dataset = self.dataset.shuffle(preprocess.TOTAL_TRAIN_SIZE)
 
         # 分割数据集
-        # TODO: 使用k折交叉验证
         # 取前VALID_SIZE个样本给验证集
-        valid_dataset = dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
+        valid_dataset = self.dataset.take(preprocess.VALID_SIZE).batch(self.valid_batch_size)
         # 剩下的给训练集
-        train_dataset = dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size).repeat()
-
-        # valid_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_3_PATH))
-        # valid_dataset = valid_dataset.shuffle(preprocess.VALID_SIZE_3).batch(self.valid_batch_size)
-        # train_dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_7_PATH))
-        # train_dataset = train_dataset.shuffle(preprocess.TRAIN_SIZE_7).batch(self.train_batch_size).repeat()
+        train_dataset = self.dataset.skip(preprocess.VALID_SIZE).batch(self.train_batch_size)
 
         # Create a reinitializable iterator
         train_iterator = train_dataset.make_initializable_iterator()
@@ -231,9 +237,8 @@ class TextRNN(object):
         next_train_element = train_iterator.get_next()
         next_valid_element = valid_iterator.get_next()
 
-        return train_dataset, valid_dataset, train_init_op, valid_init_op, next_train_element, next_valid_element
-        # =============================================================
-        # Date preparation ends.
+        return train_init_op, valid_init_op, next_train_element, next_valid_element
+        # ==============================================================
 
     def prepare_test_data(self):
         # 读取词汇表

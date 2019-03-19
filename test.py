@@ -2,6 +2,7 @@
 import tensorflow as tf
 from bilstm_model import BiLSTM
 from bilstm_model import BiLSTMConfig
+
 from data import preprocess
 import os
 import datetime
@@ -22,15 +23,15 @@ def predict():
     with tf.Session(config=config) as sess:
         # TODO: 读取不同模型，修改此处参数
         # 要读取的模型路径
-        checkpoint_dir = os.path.abspath("checkpoints\\textrnn")
+        checkpoint_dir = os.path.abspath("checkpoints\\bilstm")
         # 模型的文件名放在这，不含后缀
-        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-30001")
+        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-76245")
         # 这要加.meta后缀
-        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-30001.meta'))
+        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-76245.meta'))
         saver.restore(sess, checkpoint_file)
         graph = tf.get_default_graph()
 
-        # 注意：测试时，rnn_model.py中的Config参数要和读取的模型参数一致
+        # 注意：测试时，rnn_model.py的Config中，train_mode参数需要要和读取的模型参数一致
         config = BiLSTMConfig()
         cnn = BiLSTM(config)
         # 读取测试集及词汇表数据
@@ -85,7 +86,6 @@ def predict():
 
             t2 = datetime.datetime.now()
             dt = (t2-t1).min
-
             print('查询总耗时: %fmin' % dt)
             print('平均每条耗时: %fmin' % (dt/i))
             # 450w条数据约15分钟
