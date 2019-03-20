@@ -1,5 +1,6 @@
 # coding=utf-8
-
+import sklearn.metrics as metrics
+import sklearn as sk
 import tensorflow as tf
 from rnn_model import TextRNN
 from rnn_model import RNNConfig
@@ -45,11 +46,7 @@ def train():
         merged_summary = tf.summary.merge([tf.summary.scalar('loss', rnn.loss),
                                             tf.summary.scalar('accuracy', rnn.accuracy)])
 
-        merged_valid_summary = tf.summary.merge([tf.summary.scalar('valid_loss', rnn.valid_loss),
-                                                 tf.summary.scalar('valid_accuracy', rnn.valid_accuracy)])
-
         train_summary_writer = tf.summary.FileWriter(train_tensorboard_dir, sess.graph)
-        valid_summary_writer = tf.summary.FileWriter(valid_tensorboard_dir, sess.graph)
         # =========================================================================
 
         global_step = tf.Variable(0, trainable=False)
@@ -81,9 +78,12 @@ def train():
 
         # 验证步骤
         def valid_step(next_valid_element):
-            # 把valid_loss和valid_accuracy归零
-            sess.run(tf.assign(rnn.valid_loss, 0.0))
-            sess.run(tf.assign(rnn.valid_accuracy, 0.0))
+            # 把valid_loss和valid_accuracy归0
+            valid_loss = 0.0
+            valid_accuracy = 0.0
+            valid_precision = 0.0
+            valid_recall = 0.0
+            valid_f1_score = 0.0
             i = 0
             while True:
                 try:
@@ -95,29 +95,39 @@ def train():
                         rnn.dropout_keep_prob: 1.0,
                         rnn.training: False
                     }
-                    loss, accuracy = sess.run([rnn.loss, rnn.accuracy], feed_dict)
-                    # rnn.valid_loss += loss
-                    sess.run(rnn.valid_loss.assign_add(loss))
-                    # rnn.valid_accuracy += accuracy
-                    sess.run(rnn.valid_accuracy.assign_add(accuracy))
+                    loss, accuracy, prediction, y_true = sess.run(
+                        [rnn.loss, rnn.accuracy, rnn.prediction, rnn.labels],
+                        feed_dict)
+
+                    precision = sk.metrics.precision_score(y_true=y_true, y_pred=prediction, average='weighted')
+                    recall = sk.metrics.recall_score(y_true=y_true, y_pred=prediction, average='weighted')
+                    f1_score = sk.metrics.f1_score(y_true=y_true, y_pred=prediction, average='weighted')
+
+                    valid_loss += loss
+                    valid_accuracy += accuracy
+                    valid_precision += precision
+                    valid_recall += recall
+                    valid_f1_score += f1_score
                     i += 1
 
                 except tf.errors.OutOfRangeError:
                     # 遍历完验证集，然后对loss和accuracy求平均值
-                    # rnn.valid_loss /= i
-                    sess.run(rnn.valid_loss.assign(tf.math.divide(rnn.valid_loss, i)))
-                    # rnn.valid_accuracy /= i
-                    sess.run(rnn.valid_accuracy.assign(tf.math.divide(rnn.valid_accuracy, i)))
-                    step, valid_loss, valid_accuracy, valid_summary = sess.run([global_step, rnn.valid_loss,
-                                                                                rnn.valid_accuracy,
-                                                                                merged_valid_summary], feed_dict)
+                    valid_loss /= i
+                    valid_accuracy /= i
+                    valid_precision /= i
+                    valid_recall /= i
+                    valid_f1_score /= i
+
                     t = datetime.datetime.now().strftime('%m-%d %H:%M')
-                    log = '%s: epoch %d, validation loss: %f, accuracy: %f' % (t, epoch, valid_loss, valid_accuracy)
+                    log = '%s: epoch %d, validation loss: %0.6f, accuracy: %0.6f' % (
+                        t, epoch, valid_loss, valid_accuracy)
+                    log = log + '\n' + ('precision: %0.6f, recall: %0.6f, f1_score: %0.6f' % (
+                        valid_precision, valid_recall, valid_f1_score))
                     print(log)
-                    log_file.write(log+'\n')
+                    log_file.write(log + '\n')
                     time.sleep(3)
                     # 把结果写入Tensorboard中
-                    valid_summary_writer.add_summary(valid_summary, step)
+                    # valid_summary_writer.add_summary(valid_summary, step)
                     return
 
         print('Start training TextRNN, training mode='+rnn.train_mode)
@@ -139,7 +149,6 @@ def train():
                     break
 
         train_summary_writer.close()
-        valid_summary_writer.close()
         log_file.close()
         # 训练完成后保存参数
         path = saver.save(sess, checkpoint_prefix, global_step=global_step)
@@ -149,7 +158,6 @@ def train():
 
 if __name__ == '__main__':
     train()
-
 
 
 

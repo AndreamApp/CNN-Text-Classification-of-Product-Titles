@@ -8,6 +8,7 @@ import datetime
 import collections
 import re
 import os
+import sklearn as sk
 
 SGNS_WORD_NGRAM_PATH = 'sgns.target.word-ngram.1-2.dynwin5.thr10.neg5.dim300.iter5'
 SGNS_WORD_PATH = 'sgns.target.word-word.dynwin5.thr10.neg5.dim300.iter5'

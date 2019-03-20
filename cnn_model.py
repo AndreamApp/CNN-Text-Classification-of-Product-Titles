@@ -1,4 +1,6 @@
 # coding=utf-8
+from sklearn.metrics import confusion_matrix
+import sklearn as sk
 import tensorflow as tf
 from tensorflow.data import TextLineDataset
 import numpy as np
@@ -11,28 +13,28 @@ class CNNConfig(object):
     """
     # TODO: 在此修改TextCNN以及训练的参数
     """
-    train_mode = 'CHAR-RANDOM'  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
-                                    # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
-                                    # 'MULTI'
-    class_num = 1258        # 输出类别的数目
-    embedding_dim = 128      # 词向量维度，仅'CHAR-RANDOM'模式适用，
-                            # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
+    def __init__(self, train_mode='CHAR-RANDOM'):
+        self.train_mode = train_mode  # 训练模式，'CHAR-RANDOM'为字符级，随机初始化词向量并训练优化
+        # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
+        # 'MULTI'
+        self.class_num = 1258  # 输出类别的数目
+        self.embedding_dim = 128  # 词向量维度，仅'CHAR-RANDOM'模式适用，
+        # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
 
-    filter_num = 200        # 卷积核数目
-    filter_sizes = [2, 3, 4, 5, 6]         # 卷积核尺寸
-    vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
+        self.filter_num = 200  # 卷积核数目
+        self.filter_sizes = [2, 3, 4, 5, 6]  # 卷积核尺寸
+        self.vocab_size = preprocess.VOCAB_SIZE  # 词汇表大小
 
-    dense_unit_num = 512        # 全连接层神经元
+        self.dense_unit_num = 512  # 全连接层神经元
 
-    dropout_keep_prob = 0.5     # dropout保留比例
-    learning_rate = 1e-3    # 学习率
+        self.dropout_keep_prob = 0.5  # dropout保留比例
+        self.learning_rate = 1e-3  # 学习率
 
-    train_batch_size = 128         # 每批训练大小
-    valid_batch_size = 3000       # 每批验证大小
-    test_batch_size = 5000        # 每批测试大小
-    valid_per_batch = 1000           # 每多少批进行一次验证
-    # epoch_num = 18*int(preprocess.TRAIN_SIZE/train_batch_size)        # 总迭代轮次
-    epoch_num = 25        # 总迭代轮次
+        self.train_batch_size = 128  # 每批训练大小
+        self.valid_batch_size = 3000  # 每批验证大小
+        self.test_batch_size = 5000  # 每批测试大小
+        self.valid_per_batch = 1000  # 每多少批进行一次验证
+        self.epoch_num = 26  # 总迭代轮次
 
 
 class TextCNN(object):
@@ -73,11 +75,6 @@ class TextCNN(object):
         self.embedding_W = None
         self.dataset = None
 
-        # 此变量用来计算验证集的平均损失
-        self.valid_loss = tf.Variable(tf.constant(0.0, dtype=tf.float32))
-        # 平均准确率
-        self.valid_accuracy = tf.Variable(tf.constant(0.0, dtype=tf.float32))
-
     def setCNN(self):
         # 输入层
         self.input_x = tf.placeholder(tf.int32, [None, self.text_length], name="input_x")
@@ -108,7 +105,6 @@ class TextCNN(object):
                 embedding_inputs1 = tf.nn.embedding_lookup(W1, self.input_x)
                 embedding_inputs2 = tf.nn.embedding_lookup(W2, self.input_x)
                 self.embedding_inputs_expanded = tf.stack([embedding_inputs1, embedding_inputs2], axis=-1)
-
 
         # The final pooling output, containing outputs from each filter
         pool_outputs = []
@@ -180,7 +176,7 @@ class TextCNN(object):
                 kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
                 bias_initializer=tf.constant_initializer(0.1)
             )
-
+            self.score = tf.multiply(score, 1, name='score')
             self.prediction = tf.argmax(score, 1, name='prediction')
 
         # Loss function

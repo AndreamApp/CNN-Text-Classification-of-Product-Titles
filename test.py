@@ -1,8 +1,14 @@
 # coding=utf-8
+import sklearn as sk
+import sklearn.metrics as metrics
 import tensorflow as tf
 from bilstm_model import BiLSTM
 from bilstm_model import BiLSTMConfig
-
+from cnn_model import TextCNN
+from cnn_model import CNNConfig
+from rnn_model import TextRNN
+from rnn_model import RNNConfig
+from tensorflow.data import TextLineDataset
 from data import preprocess
 import os
 import datetime
@@ -23,22 +29,23 @@ def predict():
     with tf.Session(config=config) as sess:
         # TODO: 读取不同模型，修改此处参数
         # 要读取的模型路径
-        checkpoint_dir = os.path.abspath("checkpoints\\bilstm")
+        checkpoint_dir = os.path.abspath("checkpoints/textcnn")
         # 模型的文件名放在这，不含后缀
-        checkpoint_file = os.path.join(checkpoint_dir, "WORD-NON-STATIC-76245")
+        checkpoint_file = os.path.join(checkpoint_dir, "MULTI-71110")
         # 这要加.meta后缀
-        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'WORD-NON-STATIC-76245.meta'))
+        saver = tf.train.import_meta_graph(os.path.join(checkpoint_dir, 'MULTI-71110.meta'))
         saver.restore(sess, checkpoint_file)
         graph = tf.get_default_graph()
 
-        # 注意：测试时，rnn_model.py的Config中，train_mode参数需要要和读取的模型参数一致
-        config = BiLSTMConfig()
-        cnn = BiLSTM(config)
+        # 这里的train_mode参数要和模型一致
+        config = CNNConfig('MULTI')
+        cnn = TextCNN(config)
         # 读取测试集及词汇表数据
         dataset, next_element = cnn.prepare_test_data()
 
         # 从图中读取变量
         input_x = graph.get_operation_by_name("input_x").outputs[0]
+        input_y = graph.get_operation_by_name("input_y").outputs[0]
         dropout_keep_prob = graph.get_operation_by_name("dropout_keep_prob").outputs[0]
         prediction = graph.get_operation_by_name("output/prediction").outputs[0]
         training = graph.get_operation_by_name("training").outputs[0]
@@ -91,6 +98,46 @@ def predict():
             # 450w条数据约15分钟
             # ==================================================================
 
+        def predict_train_set():
+            # 查看训练集的表现
+            dataset = TextLineDataset(os.path.join('data', preprocess.TRAIN_WITH_ID_PATH)).batch(cnn.valid_batch_size)
+            next_element = dataset.make_one_shot_iterator().get_next()
+
+            valid_precision = 0.0
+            valid_recall = 0.0
+            valid_f1_score = 0.0
+            i = 0
+            while True:
+                try:
+                    titles = sess.run(next_element)
+                    batch_x, batch_y = cnn.convert_input(titles)
+                    feed_dict = {
+                        input_x: batch_x,
+                        input_y: batch_y,
+                        dropout_keep_prob: 1.0,
+                        training: False
+                    }
+                    y_true, y_pred = sess.run([input_y, prediction], feed_dict)
+                    precision = sk.metrics.precision_score(y_true=y_true, y_pred=y_pred, average='weighted')
+                    recall = sk.metrics.recall_score(y_true=y_true, y_pred=y_pred, average='weighted')
+                    f1_score = sk.metrics.f1_score(y_true=y_true, y_pred=y_pred, average='weighted')
+
+                    valid_precision += precision
+                    valid_recall += recall
+                    valid_f1_score += f1_score
+                    i += 1
+
+                except tf.errors.OutOfRangeError:
+                    # 遍历完验证集，然后对loss和accuracy求平均值
+                    valid_precision /= i
+                    valid_recall /= i
+                    valid_f1_score /= i
+
+                    log = 'Training set: precision: %0.6f, recall: %0.6f, f1_score: %0.6f' % (
+                        valid_precision, valid_recall, valid_f1_score)
+                    print(log)
+                    return
+
         titles = ['可莉丝汀桶装10低盐全期天然猫粮成猫幼猫粮包邮5斤2.5kg美短美毛',
                   '猫粮20斤10KG深海洋鱼味幼猫成猫老年猫 皇仕英短蓝猫天然奶糕粮5',
                   '29省包邮 皇家i27室内成猫猫粮10kg化毛球现货蓝猫美短波斯猫',
@@ -116,7 +163,8 @@ def predict():
                   'JackJones杰克琼斯秋季男士时尚做旧复古浅色休闲牛仔裤长裤子',
                   '花花公子春秋季牛仔裤男士修身裤子男韩版潮流弹力加绒黑色小脚裤',
                   '琅酷 全包边休眠硅胶保护背壳 适用于ipad2/ipad3/ipad4 TPU蔷薇']
-        customize_predict(titles)
+        # customize_predict(titles)
+        predict_train_set()
 
 
 if __name__ == '__main__':

@@ -10,29 +10,29 @@ class RNNConfig(object):
     """
     # TODO: 在此修改RNN以及训练的参数
     """
-    train_mode = 'CHAR-RANDOM'     # 训练模式，'CHAR-RANDOM'为字符级，样本分割为字符并使用自训练词嵌入
-                                    # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
+    def __init__(self, train_mode='CHAR-RANDOM'):
+        self.train_mode = train_mode  # 训练模式，'CHAR-RANDOM'为字符级，样本分割为字符并使用自训练词嵌入
+        # 'WORD-NON-STATIC'为词级, 使用word2vec预训练词向量并能够继续在训练中优化
 
-    class_num = 1258        # 输出类别的数目
-    embedding_dim = 128      # 词向量维度，'CHAR'模式适用，
-                            # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
+        self.class_num = 1258  # 输出类别的数目
+        self.embedding_dim = 128  # 词向量维度，'CHAR'模式适用，
+        # 'WORD-NON-STATIC'模式默认为preprocess.py中定义的vec_dim
 
-    layer_num = 4   # rnn层数
-    unit_num = 256  # rnn神经元数目
+        self.layer_num = 4
+        self.unit_num = 128  # LSTM神经元数目
 
-    dense_unit_num = 512       # 全连接层神经元
+        self.dense_unit_num = 512  # 全连接层神经元
 
-    vocab_size = preprocess.VOCAB_SIZE      # 词汇表大小
+        self.vocab_size = preprocess.VOCAB_SIZE  # 词汇表大小
 
-    dropout_keep_prob = 0.5     # dropout保留比例
-    learning_rate = 1e-3    # 学习率
+        self.dropout_keep_prob = 0.5  # dropout保留比例
+        self.learning_rate = 1e-3  # 学习率
 
-    train_batch_size = 128         # 每批训练大小
-    valid_batch_size = 5000       # 每批验证大小
-    test_batch_size = 5000        # 每批测试大小
-    valid_per_batch = 1000           # 每多少批进行一次验证
-    # epoch_num = 18*int(preprocess.TRAIN_SIZE/train_batch_size)        # 总迭代轮次
-    epoch_num = 20        # 总迭代轮次
+        self.train_batch_size = 128  # 每批训练大小
+        self.valid_batch_size = 5000  # 每批验证大小
+        self.test_batch_size = 5000  # 每批测试大小
+        self.valid_per_batch = 1000  # 每多少批进行一次验证
+        self.epoch_num = 20  # 总迭代轮次
 
 
 class TextRNN(object):
@@ -73,11 +73,6 @@ class TextRNN(object):
         self.vecs_dict = {}
         self.embedding_W = None
         self.dataset = None
-
-        # 此变量用来计算验证集的平均损失
-        self.valid_loss = tf.Variable(tf.constant(0.0, dtype=tf.float32))
-        # 平均准确率
-        self.valid_accuracy = tf.Variable(tf.constant(0.0, dtype=tf.float32))
 
     def setRNN(self):
         # 输入层
@@ -142,7 +137,7 @@ class TextRNN(object):
                 kernel_initializer=tf.truncated_normal_initializer(stddev=0.1),
                 bias_initializer=tf.constant_initializer(0.1)
             )
-
+            self.score = tf.multiply(score, 1, name='score')
             self.prediction = tf.argmax(score, 1, name='prediction')
 
         # Loss function
