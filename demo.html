@@ -21,9 +21,13 @@
                         <button class='btn btn-large' @click='addLine'>Add a line</button>
                         <!-- TODO: model select -->
                         <select class='btn btn-large' v-model='modelSelected'>
-                            <option v-for='md in modelList'>
-                                {{ md.name }}
-                            </option>
+                            <option>TextCNN-CHAR</option>
+                            <option>TextCNN-WORD</option>
+                            <option>TextCNN-MULTI</option>
+                            <option>TextRNN-CHAR</option>
+                            <option>TextRNN-WORD</option>
+                            <option>BiLSTM-CHAR</option>
+                            <option>BiLSTM-WORD</option>
                         </select>
                         <!-- <button class='btn btn-large'>Model</button> -->
                         <!-- TODO: encoding -->

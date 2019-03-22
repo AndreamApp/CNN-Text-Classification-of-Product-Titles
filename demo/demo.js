@@ -111,15 +111,14 @@ demo = new Vue({
         colors: [
             '#4798E5', '#81A3E2', '#454851', '#A99FAD', '#7C7342', '#93748A', '#969176'
         ],
-        modelSelected: 'CNN1',
-        modelList: [ 'CNN1', 'CNN2', 'CNN3', 'RNN1', 'RNN2', 'BiLSTM1', 'BiLSTM2' ] // TODO: 模型列表
+        modelSelected: 'TextCNN-CHAR'
     },
     methods: {
         encodeItemsQuery: function() {
-            let fieldFilter = ['cmd', 'items', 'id', 'type', 'title', 'file_content'];
+            let fieldFilter = ['cmd', 'model', 'items', 'id', 'type', 'title', 'file_content'];
             let obj = {
                 'cmd': 'query',
-                // TODO: 添加参数 model
+                'model': this.modelSelected,
                 'items': this.items.filter(queryFilter)
             };
             console.log(obj);
@@ -157,10 +156,6 @@ demo = new Vue({
                         }
                     })
                 })
-            }
-            else if('modelList' == data['cmd']) {
-                // TODO: 刷新模型列表
-                this.modelList = data['results'];
             }
         },
         // 添加一行文本
