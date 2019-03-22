@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Classifier Demo</title>
+    <link rel="stylesheet" type="text/css" href="demo/style.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
+            integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr"
+            crossorigin="anonymous">
+
+</head>
+<body>
+    <div id="content">
+        
+        <input id="fileSelector" type="file" ref="selectedFiles" @change="uploadFile" accept=".txt,.tsv" hidden>
+
+        <table class="header">
+            <tbody>
+                <tr>
+                    <td class="span0">
+                        <button class='btn btn-large' @click='addLine'>Add a line</button>
+                        <!-- TODO: model select -->
+                        <select class='btn btn-large' v-model='modelSelected'>
+                            <option v-for='md in modelList'>
+                                {{ md.name }}
+                            </option>
+                        </select>
+                        <!-- <button class='btn btn-large'>Model</button> -->
+                        <!-- TODO: encoding -->
+                        <!-- <button class='btn btn-large'>Encoding</button> -->
+                    </td>
+                    <!-- <td class="span1"> </td> <td class="span2"> </td> -->
+                    <td class="span3"></td>
+                    <td class="span4">
+                        <button class='btn btn-red' @click='clearLines'>Clear</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <table class="items">
+            <tbody>
+                <tr v-for="item in items">
+                    <td style="width: 5%">
+                        <i v-if="item.type == 'file'" class="fas fa-file-alt"></i>
+                        <div v-else class="dot-circle"></div>
+                    </td>
+                    <td style="width: 45%">
+                        <input class="product-title" type="text"
+                            v-model="item.title"
+                            placeholder="请输入商品标题..."
+                            :change="onLineChanged(item)" />
+                    </td>
+                    <td style="width: 30%">
+                        <div :style="resultClass(item.result)" class="product-result" type="text"> {{ item.result }} </div>
+                    </td>
+                    <td style="width: 10%">
+                        <div class="time"> {{ item.time }} </div>
+                    </td>
+                    <td style="width: 10%">
+                        <button class="remove" @click="removeLine(item)"><i class="fas fa-times"></i></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div id='bottom' class='fixed'>
+            <div id="state" class="err"></div>
+            <div id="state_text">未连接</div>
+            <div class='btn-container'>
+                <button id='upload' class='btn btn-large' @click='selectFile'>
+                    <i class="fas fa-upload"></i>
+                    Upload
+                </button>
+            </div>
+            <div class='btn-container'>
+                <button id='predict' class='btn btn-large btn-green' @click='predict'>
+                    <i class="fas fa-check"></i>
+                    Predict
+                </button>
+            </div>
+            <div class='btn-container'>
+                <button id='export' class='btn btn-large' @click='exportFile'>
+                    <i class="fas fa-download"></i>
+                    Export
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="demo/vue.min.js"></script>
+    <script src="demo/jquery.min.js"></script>
+    <script src="demo/demo.js"></script>
+</body>
+
+</html>
